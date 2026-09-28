@@ -1,0 +1,11 @@
+{
+  "name": "riskcontroller-simulation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "电商实时风险控制系统 · 模拟事件流数据集与演示脚本（纯 Node，零依赖）",
+  "scripts": {
+    "generate": "node scripts/generator.js",
+    "demo": "node scripts/demo.js"
+  }
+}

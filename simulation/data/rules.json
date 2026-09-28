@@ -1,0 +1,64 @@
+{
+  "rules": [
+    {
+      "code": "R003", "name": "同设备多账号领券", "scene": "coupon_receive", "score": 45, "enabled": true,
+      "expr": { "op": "AND", "children": [{ "field": "device_account_cnt_1h", "op": ">=", "value": 3 }] },
+      "reasonTpl": "近1h同设备领券账号数={device_account_cnt_1h}"
+    },
+    {
+      "code": "R007", "name": "同IP注册账号数超标", "scene": "通用", "score": 40, "enabled": true,
+      "expr": { "op": "AND", "children": [{ "field": "ip_register_cnt", "op": ">=", "value": 5 }] },
+      "reasonTpl": "同IP注册账号数={ip_register_cnt}"
+    },
+    {
+      "code": "R012", "name": "近1h领券频次异常", "scene": "coupon_receive", "score": 20, "enabled": true,
+      "expr": { "op": "AND", "children": [
+        { "field": "coupon_cnt_1h", "op": ">=", "value": 3 },
+        { "field": "account_age_d", "op": "<=", "value": 3 }
+      ] },
+      "reasonTpl": "近1h领券{coupon_cnt_1h}次且注册仅{account_age_d}天"
+    },
+    {
+      "code": "R015", "name": "同收货地址订单聚集", "scene": "order_create", "score": 15, "enabled": true,
+      "expr": { "op": "AND", "children": [{ "field": "addr_order_cnt_24h", "op": ">=", "value": 5 }] },
+      "reasonTpl": "近24h同收货地址订单={addr_order_cnt_24h}单"
+    },
+    {
+      "code": "R018", "name": "机房代理IP标识", "scene": "通用", "score": 10, "enabled": true,
+      "expr": { "op": "AND", "children": [{ "field": "ip_idc_flag", "op": "==", "value": true }] },
+      "reasonTpl": "请求IP命中机房代理库"
+    },
+    {
+      "code": "R021", "name": "高额未收货退款高频", "scene": "after_sale_apply", "score": 35, "enabled": true,
+      "expr": { "op": "AND", "children": [
+        { "field": "refund_amount", "op": ">=", "value": 500 },
+        { "field": "refund_cnt_24h", "op": ">=", "value": 3 }
+      ] },
+      "reasonTpl": "退款金额{refund_amount}元，近24h申请{refund_cnt_24h}次"
+    },
+    {
+      "code": "R023", "name": "同地址多账号退款聚集", "scene": "after_sale_apply", "score": 25, "enabled": true,
+      "expr": { "op": "AND", "children": [
+        { "field": "addr_order_cnt_24h", "op": ">=", "value": 3 },
+        { "field": "refund_cnt_24h", "op": ">=", "value": 2 }
+      ] },
+      "reasonTpl": "同地址订单{addr_order_cnt_24h}单，退款申请{refund_cnt_24h}次"
+    },
+    {
+      "code": "R024", "name": "囤货型订单聚集", "scene": "order_create", "score": 50, "enabled": true,
+      "expr": { "op": "AND", "children": [
+        { "field": "addr_order_cnt_24h", "op": ">=", "value": 5 },
+        { "field": "order_cnt_24h", "op": ">=", "value": 3 }
+      ] },
+      "reasonTpl": "同地址{addr_order_cnt_24h}单且近24h下单{order_cnt_24h}次"
+    },
+    {
+      "code": "R026", "name": "黄牛高频下单限量商品", "scene": "order_create", "score": 50, "enabled": false,
+      "expr": { "op": "AND", "children": [
+        { "field": "order_cnt_10m", "op": ">=", "value": 5 },
+        { "field": "sku_limit_flag", "op": "==", "value": true }
+      ] },
+      "reasonTpl": "近10min下单{order_cnt_10m}次，含限量商品"
+    }
+  ]
+}

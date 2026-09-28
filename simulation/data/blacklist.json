@@ -1,0 +1,8 @@
+{
+  "entries": [
+    { "listType": "黑名单", "dim": "设备", "value": "DEV_3c81aa02", "reason": "羊毛党团伙设备（历史案件）", "operator": "审核员·李敏", "time": "2026-09-26 09:30:00" },
+    { "listType": "黑名单", "dim": "用户", "value": "U09877", "reason": "多次高额恶意退款", "operator": "审核员·王强", "time": "2026-09-26 15:12:00" },
+    { "listType": "黑名单", "dim": "IP", "value": "45.121.8.90", "reason": "机房代理IP批量注册", "operator": "策略师·陈晨", "time": "2026-09-27 09:31:00" },
+    { "listType": "白名单", "dim": "用户", "value": "U00001", "reason": "压测白名单，跳过全部规则", "operator": "管理员·admin", "time": "2026-09-01 00:00:00" }
+  ]
+}

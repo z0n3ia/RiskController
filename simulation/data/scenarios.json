@@ -1,0 +1,67 @@
+{
+  "seed": 42,
+  "day": "2026-09-27",
+  "stream": { "start": "09:00:00", "end": "11:00:00" },
+  "baseline": {
+    "users": ["U05123", "U04471", "U03210", "U02001", "U03555", "U07654", "U00001"],
+    "syntheticUsers": 113,
+    "eventsPerMinute": 6,
+    "mix": {
+      "login": 0.2, "order_create": 0.25, "order_pay": 0.3,
+      "coupon_receive": 0.15, "after_sale_apply": 0.1
+    },
+    "payloadDefaults": {
+      "coupon_receive": { "couponId": "CPN_L5", "amount": 5, "channel": "app" },
+      "order_create": { "skuId": "SKU_1001", "qty": 1, "amountRange": [59, 499], "skuLimit": false },
+      "order_pay": { "amountRange": [59, 499] },
+      "after_sale_apply": { "reason": "七天无理由", "refundAmountRange": [20, 120] },
+      "login": { "channel": "h5" }
+    }
+  },
+  "scenarios": [
+    {
+      "id": "S1",
+      "name": "电商大促羊毛党批量领券（演示场景一 · 必选）",
+      "type": "coupon_burst",
+      "actors": ["U10086", "U10087", "U10092", "U10095", "U10070", "U10071"],
+      "window": { "start": "10:19:00", "end": "10:22:30" },
+      "eventType": "coupon_receive",
+      "payload": { "couponId": "CPN_L50", "amount": 50, "channel": "h5" },
+      "claimsPerUser": 4,
+      "dispose": {
+        "at": "10:30:00",
+        "operator": "审核员·李敏",
+        "conclusion": "拉黑用户",
+        "blackDims": ["user", "device", "ip"]
+      },
+      "postDisposeRetry": {
+        "note": "团伙换设备换号重试（IP 仍为 112.74.103.55）",
+        "window": { "start": "10:35:00", "end": "10:38:00" },
+        "actors": ["U10092", "U10071"],
+        "eventType": "coupon_receive",
+        "claimsPerUser": 2
+      }
+    },
+    {
+      "id": "S2",
+      "name": "高价值商品恶意退款欺诈（演示场景二 · 可选）",
+      "type": "refund_fraud",
+      "actors": ["U09912"],
+      "orderPhase": { "window": { "start": "09:10:00", "end": "09:26:00" }, "count": 3, "eventType": "order_create", "payload": { "skuId": "SKU_DIGI_88", "qty": 1, "amount": 1688, "skuLimit": false } },
+      "window": { "start": "09:40:00", "end": "10:05:00" },
+      "eventType": "after_sale_apply",
+      "payload": { "orderId": "ORD-20260925-11209", "refundAmount": 1688, "reason": "未收到货" },
+      "count": 4
+    },
+    {
+      "id": "S3",
+      "name": "黄牛囤货型订单聚集（附加样本）",
+      "type": "order_burst",
+      "actors": ["U09855"],
+      "window": { "start": "09:30:00", "end": "09:50:00" },
+      "eventType": "order_create",
+      "payload": { "skuId": "SKU_LIMIT_001", "qty": 2, "amount": 1666, "skuLimit": true },
+      "count": 6
+    }
+  ]
+}

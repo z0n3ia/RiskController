@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>线框图原型 · 电商实时风险控制系统</title>
+<style>
+:root{
+  --bg:#f4f6f9; --panel:#fff; --line:#d8dee6; --txt:#333; --muted:#8a94a3;
+  --primary:#3b6fe0; --primary-weak:#e8effc;
+  --high:#e5484d; --mid:#f5a623; --low:#3fb27f;
+  --radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei",system-ui,sans-serif}
+body{background:var(--bg);color:var(--txt);font-size:13px}
+/* ============ 通用组件 ============ */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+.card h3{font-size:13px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.card h3 .tip{font-weight:400;color:var(--muted);font-size:11px}
+.btn{display:inline-block;border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;color:var(--txt)}
+.btn:hover{border-color:var(--primary);color:var(--primary)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.primary:hover{opacity:.9;color:#fff}
+.btn.danger{background:var(--high);border-color:var(--high);color:#fff}
+.btn.ghost{border-style:dashed;color:var(--muted)}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;line-height:18px}
+.tag.high{background:#fdecec;color:var(--high)}
+.tag.mid{background:#fdf3e2;color:#c07d10}
+.tag.low{background:#e6f6ef;color:#2b8a63}
+.tag.gray{background:#eef1f5;color:var(--muted)}
+.tag.blue{background:var(--primary-weak);color:var(--primary)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#f7f9fb;color:var(--muted);font-weight:500;text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid #eef1f5;vertical-align:middle}
+tr:hover td{background:#fafbfd}
+a{color:var(--primary);text-decoration:none;cursor:pointer}
+.muted{color:var(--muted)}
+.mono{font-family:Consolas,monospace}
+input[type=text],select,textarea{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12px;background:#fff;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+.field{margin-bottom:10px}
+.field label{display:block;color:var(--muted);margin-bottom:4px;font-size:12px}
+.row{display:flex;gap:12px}
+.row>*{flex:1}
+.switch{position:relative;width:34px;height:18px;background:#cfd6df;border-radius:9px;cursor:pointer;transition:.2s;flex:none}
+.switch:after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:.2s}
+.switch.on{background:var(--low)}
+.switch.on:after{left:18px}
+/* 徽标点 */
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px}
+/* ============ 布局 ============ */
+#app{display:none}
+#app.show{display:flex;height:100vh}
+aside{width:200px;background:#1e2733;color:#aab4c2;flex:none;display:flex;flex-direction:column}
+aside .logo{padding:18px 16px;font-size:15px;color:#fff;font-weight:600;border-bottom:1px solid #2b3646}
+aside .logo small{display:block;font-weight:400;font-size:10px;color:#6d7a8b;margin-top:3px}
+aside nav{flex:1;padding:10px 8px}
+aside nav a{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:6px;color:#aab4c2;margin-bottom:2px;font-size:13px}
+aside nav a.active{background:var(--primary);color:#fff}
+aside nav a:hover:not(.active){background:#2b3646;color:#fff}
+aside .user{padding:12px 16px;border-top:1px solid #2b3646;font-size:12px}
+aside .user b{color:#fff}
+main{flex:1;display:flex;flex-direction:column;min-width:0}
+header.topbar{height:48px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:14px;flex:none}
+header.topbar .crumb{font-weight:600;font-size:14px}
+header.topbar .spacer{flex:1}
+header.topbar .env{font-size:11px;color:var(--muted);border:1px dashed var(--line);padding:2px 8px;border-radius:10px}
+.content{flex:1;overflow:auto;padding:16px}
+.page{display:none}
+.page.active{display:block}
+/* ============ 登录页 ============ */
+#login{height:100vh;display:flex;align-items:center;justify-content:center;background:#e9edf4}
+#login .box{width:380px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:30px}
+#login h1{font-size:18px;margin-bottom:4px}
+#login .sub{color:var(--muted);font-size:12px;margin-bottom:22px}
+.role-pick{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.role-pick .role{border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.role-pick .role:hover{border-color:var(--primary)}
+.role-pick .role.sel{border-color:var(--primary);background:var(--primary-weak)}
+.role-pick b{font-size:13px}
+.role-pick small{display:block;color:var(--muted);margin-top:2px}
+/* ============ 大盘 ============ */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.metric .num{font-size:24px;font-weight:700;margin:6px 0 2px}
+.metric .delta{font-size:11px}
+.metric .delta.up{color:var(--low)} .metric .delta.down{color:var(--high)}
+.grid2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px}
+.grid2b{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:12px}
+.scroll-feed{height:230px;overflow:hidden;position:relative}
+.scroll-feed ul{list-style:none;animation:scrollup 12s linear infinite}
+.scroll-feed li{padding:6px 0;border-bottom:1px dashed #eef1f5;display:flex;gap:8px;font-size:12px;align-items:center}
+@keyframes scrollup{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+/* 图例 */
+.legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+/* ============ 工作台 ============ */
+.ws-grid{display:grid;grid-template-columns:380px 1fr;gap:12px;height:calc(100vh - 96px)}
+.ws-left{display:flex;flex-direction:column;gap:10px;min-height:0}
+.ws-left .list{flex:1;overflow:auto;min-height:0}
+.case-item{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;background:#fff}
+.case-item:hover{border-color:var(--primary)}
+.case-item.sel{border-color:var(--primary);background:var(--primary-weak)}
+.case-item .top{display:flex;justify-content:space-between;margin-bottom:4px}
+.ws-right{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.tabs .tab{padding:6px 14px;cursor:pointer;font-size:12px;border-bottom:2px solid transparent;color:var(--muted)}
+.tabs .tab.active{color:var(--primary);border-color:var(--primary);font-weight:600}
+.tabpane{display:none}.tabpane.active{display:block}
+.feat-table td:first-child{color:var(--muted);width:40%}
+.diff-up{color:var(--high);font-weight:600}
+/* 实体图谱 */
+.graph-box{height:260px;background:#fafbfd;border:1px dashed var(--line);border-radius:8px;position:relative;overflow:hidden}
+.graph-box svg{width:100%;height:100%}
+.gnode{cursor:pointer}
+/* ============ 弹窗 ============ */
+.modal-mask{position:fixed;inset:0;background:rgba(20,26,36,.45);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-mask.show{display:flex}
+.modal{background:#fff;border-radius:10px;width:520px;max-width:92vw;max-height:86vh;overflow:auto}
+.modal .m-head{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:600;display:flex;justify-content:space-between}
+.modal .m-body{padding:18px}
+.modal .m-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.m-close{cursor:pointer;color:var(--muted)}
+/* 处置结论 */
+.dispose-opts{display:flex;gap:8px;margin-bottom:12px}
+.dispose-opts .opt{flex:1;border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;cursor:pointer}
+.dispose-opts .opt:hover{border-color:var(--primary)}
+.dispose-opts .opt.sel{border-color:var(--primary);background:var(--primary-weak);font-weight:600}
+.dispose-opts .opt.danger.sel{border-color:var(--high);background:#fdecec;color:var(--high)}
+/* 条件构建器 */
+.cond-group{border:1px dashed var(--line);border-radius:8px;padding:10px;margin:8px 0}
+.cond-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.cond-row select,.cond-row input{width:auto;flex:1}
+.op-badge{background:var(--primary-weak);color:var(--primary);border-radius:4px;padding:0 8px;font-size:11px;font-weight:600}
+/* ============ 仿真 ============ */
+.sim-grid{display:grid;grid-template-columns:400px 1fr;gap:12px}
+.chain-step{display:flex;gap:10px;margin-bottom:0}
+.chain-step .idx{width:24px;height:24px;border-radius:50%;background:var(--primary-weak);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}
+.chain-step .idx.done{background:var(--primary);color:#fff}
+.chain-step .idx.pending{background:#eef1f5;color:var(--muted)}
+.chain-step .line{width:2px;background:var(--line);flex:none;margin:4px 0}
+.chain-step .line.done{background:var(--primary)}
+.chain-body{flex:1;padding-bottom:18px}
+.rule-hit{display:flex;justify-content:space-between;padding:7px 10px;border:1px solid var(--line);border-radius:6px;margin-bottom:6px;font-size:12px}
+.rule-hit.hit{border-color:#f0b4b6;background:#fdf1f1}
+.rule-hit .no{color:var(--muted)}
+.verdict{border-radius:8px;padding:14px;color:#fff;font-size:14px;font-weight:700;text-align:center}
+.verdict.reject{background:var(--high)} .verdict.review{background:var(--mid)} .verdict.pass{background:var(--low)}
+.score-ring{font-size:26px}
+/* ============ 标注 ============ */
+.note{border:1px dashed #e0a800;background:#fffbe8;color:#8a6d00;font-size:11px;padding:6px 10px;border-radius:6px;margin-bottom:12px;line-height:1.6}
+.note b{color:#6b5400}
+/* 侧栏角色徽标 */
+.role-badge{background:#2b3646;color:#9fb6e8;border-radius:4px;font-size:10px;padding:1px 6px;margin-left:6px}
+</style>
+</head>
+<body>
+
+<!-- ==================== 登录页 PG-00 ==================== -->
+<div id="login">
+  <div class="box">
+    <h1>电商实时风险控制系统</h1>
+    <div class="sub">RiskGuard Console · 交互线框原型 V1.0（点击角色直接进入）</div>
+    <div class="field"><label>账号</label><input type="text" value="admin@riskguard.cn"></div>
+    <div class="field"><label>密码</label><input type="text" value="●●●●●●●●"></div>
+    <div class="role-pick">
+      <div class="role" onclick="doLogin('auditor')"><span><b>风控审核员</b><small>查看待审案件 · 核对证据链 · 录入复核结论与处置</small></span><span class="tag blue">进入 →</span></div>
+      <div class="role" onclick="doLogin('strategist')"><span><b>风控策略师</b><small>规则增删改查 · 阈值权重调整 · 名单库维护 · 仿真回测</small></span><span class="tag blue">进入 →</span></div>
+      <div class="role" onclick="doLogin('admin')"><span><b>系统管理员</b><small>运行配置 · 吞吐与接口健康度监控 · 审计流水查阅</small></span><span class="tag blue">进入 →</span></div>
+    </div>
+    <div class="note" style="margin-top:16px"><b>原型说明：</b>本原型为线框级交互稿，数据为演示假数据；蓝色虚线框标注交互要点。</div>
+  </div>
+</div>
+
+<!-- ==================== 主应用 ==================== -->
+<div id="app">
+  <aside>
+    <div class="logo">RiskGuard<small>电商实时风控 · 线框原型</small></div>
+    <nav>
+      <a data-page="dashboard" class="active" onclick="go('dashboard')">📊 风控态势大盘</a>
+      <a data-page="workbench" onclick="go('workbench')">🗂 风控审核工作台</a>
+      <a data-page="policy" onclick="go('policy')">⚙️ 策略与规则配置</a>
+      <a data-page="simulate" onclick="go('simulate')">🧪 事件仿真测试</a>
+      <a data-page="audit" onclick="go('audit')">📜 操作审计流水</a>
+      <a data-page="system" onclick="go('system')">🖥 系统运行监控</a>
+    </nav>
+    <div class="user">
+      当前角色：<b id="curRole">—</b><br>
+      <a style="color:#9fb6e8" onclick="logout()">退出登录</a>
+      <div style="margin-top:6px"><span class="switch on" onclick="this.classList.toggle('on')"></span> 实时推送</div>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <span class="crumb" id="pageTitle">风控态势大盘</span>
+      <span class="spacer"></span>
+      <span class="env">环境：DEMO · 模拟事件流运行中</span>
+      <span class="tag low"><span class="dot" style="background:var(--low)"></span>引擎正常</span>
+    </header>
+
+    <div class="content">
+
+      <!-- ============ PG-01 态势大盘 ============ -->
+      <div class="page active" id="page-dashboard">
+        <div class="note"><b>交互要点：</b>指标卡分钟级刷新；折线图支持 1h/24h/7d 切换；事件滚屏由 WebSocket 推送滚动；点击规则排行条目可跳转策略配置页定位规则。</div>
+        <div class="metrics">
+          <div class="card metric"><span class="muted">实时事件请求量（近1h）</span><div class="num">12,847</div><div class="delta up">▲ 8.3% 较上一小时</div></div>
+          <div class="card metric"><span class="muted">拦截率（近1h）</span><div class="num" style="color:var(--high)">6.4%</div><div class="delta down">▼ 0.9% 较上一小时</div></div>
+          <div class="card metric"><span class="muted">待审案件</span><div class="num" style="color:var(--mid)">37</div><div class="delta down">新增 12 · 高危 5</div></div>
+          <div class="card metric"><span class="muted">预估挽回资损（今日）</span><div class="num" style="color:var(--low)">¥ 862,540</div><div class="delta up">按拦截订单金额估算</div></div>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <h3>拦截率趋势 <span>
+              <span class="tag gray" onclick="this.parentNode.querySelectorAll('.tag').forEach(t=>t.className='tag gray');this.className='tag blue'">1h</span>
+              <span class="tag blue" id="rg-default">24h</span>
+              <span class="tag gray" onclick="this.parentNode.querySelectorAll('.tag').forEach(t=>t.className='tag gray');this.className='tag blue'">7d</span>
+            </span></h3>
+            <svg viewBox="0 0 600 200" width="100%" height="180">
+              <line x1="0" y1="40" x2="600" y2="40" stroke="#eef1f5"/><line x1="0" y1="80" x2="600" y2="80" stroke="#eef1f5"/><line x1="0" y1="120" x2="600" y2="120" stroke="#eef1f5"/><line x1="0" y1="160" x2="600" y2="160" stroke="#eef1f5"/>
+              <path d="M0,150 L60,140 L120,155 L180,120 L240,130 L300,95 L360,110 L420,70 L480,85 L540,55 L600,65" fill="none" stroke="#3b6fe0" stroke-width="2"/>
+              <path d="M0,150 L60,140 L120,155 L180,120 L240,130 L300,95 L360,110 L420,70 L480,85 L540,55 L600,65 L600,200 L0,200 Z" fill="#3b6fe0" opacity=".08"/>
+              <circle cx="420" cy="70" r="3.5" fill="#e5484d"/>
+              <text x="420" y="58" font-size="10" fill="#e5484d" text-anchor="middle">大促峰值 9.8%</text>
+            </svg>
+            <div class="legend"><span><i style="background:#3b6fe0"></i>拦截率</span><span><i style="background:#eef1f5"></i>时间轴（近24h）</span></div>
+          </div>
+          <div class="card">
+            <h3>风险等级分布 <span class="tip">近24h</span></h3>
+            <div style="text-align:center;padding:8px 0">
+              <svg viewBox="0 0 120 120" width="150" height="150">
+                <circle cx="60" cy="60" r="45" fill="none" stroke="#eef1f5" stroke-width="16"/>
+                <circle cx="60" cy="60" r="45" fill="none" stroke="#3fb27f" stroke-width="16" stroke-dasharray="175 283" transform="rotate(-90 60 60)"/>
+                <circle cx="60" cy="60" r="45" fill="none" stroke="#f5a623" stroke-width="16" stroke-dasharray="62 283" stroke-dashoffset="-175" transform="rotate(-90 60 60)"/>
+                <circle cx="60" cy="60" r="45" fill="none" stroke="#e5484d" stroke-width="16" stroke-dasharray="46 283" stroke-dashoffset="-237" transform="rotate(-90 60 60)"/>
+                <text x="60" y="58" text-anchor="middle" font-size="16" font-weight="700">28.6k</text>
+                <text x="60" y="74" text-anchor="middle" font-size="8" fill="#8a94a3">事件总量</text>
+              </svg>
+              <div class="legend" style="justify-content:center"><span><i style="background:#3fb27f"></i>低风险 62%</span><span><i style="background:#f5a623"></i>中风险 22%</span><span><i style="background:#e5484d"></i>高风险 16%</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid2b">
+          <div class="card">
+            <h3>规则命中排行 <span class="tip">Top 6 · 近24h</span></h3>
+            <table>
+              <tr><td><a onclick="go('policy')">R003 同设备多账号领券</a></td><td style="width:45%"><div style="background:#fdecec;border-radius:4px;height:10px"><div style="width:92%;background:var(--high);height:10px;border-radius:4px"></div></div></td><td class="muted">1,204</td></tr>
+              <tr><td><a onclick="go('policy')">R007 同IP注册账号数超标</a></td><td><div style="background:#fdf3e2;border-radius:4px;height:10px"><div style="width:78%;background:var(--mid);height:10px;border-radius:4px"></div></div></td><td class="muted">986</td></tr>
+              <tr><td><a onclick="go('policy')">R012 近1h领券频次异常</a></td><td><div style="background:#fdf3e2;border-radius:4px;height:10px"><div style="width:55%;background:var(--mid);height:10px;border-radius:4px"></div></div></td><td class="muted">713</td></tr>
+              <tr><td><a onclick="go('policy')">R021 高额未收货退款高频</a></td><td><div style="background:#e8effc;border-radius:4px;height:10px"><div style="width:38%;background:var(--primary);height:10px;border-radius:4px"></div></div></td><td class="muted">428</td></tr>
+              <tr><td><a onclick="go('policy')">R015 同收货地址订单聚集</a></td><td><div style="background:#e6f6ef;border-radius:4px;height:10px"><div style="width:22%;background:var(--low);height:10px;border-radius:4px"></div></div></td><td class="muted">257</td></tr>
+              <tr><td><a onclick="go('policy')">R018 机房代理IP标识</a></td><td><div style="background:#e6f6ef;border-radius:4px;height:10px"><div style="width:14%;background:var(--low);height:10px;border-radius:4px"></div></div></td><td class="muted">163</td></tr>
+            </table>
+          </div>
+          <div class="card">
+            <h3>决策动作分布 <span class="tip">近1h</span></h3>
+            <table>
+              <tr><th>动作</th><th>占比</th><th>次数</th></tr>
+              <tr><td><span class="tag low">Pass 放行</span></td><td>91.2%</td><td>11,716</td></tr>
+              <tr><td><span class="tag mid">Review 人审</span></td><td>4.1%</td><td>527</td></tr>
+              <tr><td><span class="tag high">Reject 拦截</span></td><td>4.7%</td><td>604</td></tr>
+              <tr><td><span class="tag gray">Challenge 二次验证</span></td><td>0%</td><td>0（未启用）</td></tr>
+            </table>
+            <div style="margin-top:12px" class="note"><b>待办提醒：</b>5 个高危案件等待认领 <a onclick="go('workbench')">前往工作台 →</a></div>
+          </div>
+          <div class="card">
+            <h3>实时事件滚屏 <span class="tag gray">WebSocket</span></h3>
+            <div class="scroll-feed"><ul id="feed"></ul></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PG-02 审核工作台 ============ -->
+      <div class="page" id="page-workbench">
+        <div class="ws-grid">
+          <!-- 左：筛选+列表 -->
+          <div class="ws-left">
+            <div class="card">
+              <div class="row field">
+                <select><option>全部风险等级</option><option>高危</option><option>中风险</option></select>
+                <select><option>全部事件场景</option><option>coupon_receive</option><option>after_sale_apply</option><option>order_create</option></select>
+              </div>
+              <div class="row field">
+                <select><option>全部审核状态</option><option>待审</option><option>审核中</option><option>已处置</option></select>
+                <input type="text" placeholder="触发时间范围：09-26 ~ 09-27">
+              </div>
+              <button class="btn primary" style="width:100%">查询案件（共 37 条）</button>
+            </div>
+            <div class="list" id="caseList"></div>
+          </div>
+          <!-- 右：详情 -->
+          <div class="ws-right">
+            <div class="card">
+              <div class="tabs">
+                <div class="tab active" onclick="wtab(this,'w1')">案件概览</div>
+                <div class="tab" onclick="wtab(this,'w2')">用户画像</div>
+                <div class="tab" onclick="wtab(this,'w3')">特征快照对比</div>
+                <div class="tab" onclick="wtab(this,'w4')">关联实体图谱</div>
+                <div class="tab" onclick="wtab(this,'w5')">研判与处置</div>
+              </div>
+
+              <!-- 案件概览 -->
+              <div class="tabpane active" id="w1">
+                <div class="row">
+                  <div class="card" style="background:#fafbfd">
+                    <h3>事件基本信息 <span class="tag high">高危 Reject · 得分 85</span></h3>
+                    <table>
+                      <tr><td class="muted" width="30%">案件编号</td><td class="mono">CASE-20260927-005218</td></tr>
+                      <tr><td class="muted">事件类型</td><td><span class="tag blue">coupon_receive 营销领券</span></td></tr>
+                      <tr><td class="muted">涉事用户</td><td><a>U10086（羊毛党-A组-06）</a></td></tr>
+                      <tr><td class="muted">业务单据</td><td class="mono">CPN-20260927-88412</td></tr>
+                      <tr><td class="muted">设备指纹</td><td class="mono">DEV_9f2a…c81e <span class="tag high">关联 6 账号</span></td></tr>
+                      <tr><td class="muted">请求 IP</td><td class="mono">112.74.103.55 <span class="tag mid">机房代理</span></td></tr>
+                      <tr><td class="muted">触发时间</td><td>2026-09-27 10:21:33</td></tr>
+                    </table>
+                  </div>
+                  <div class="card" style="background:#fafbfd">
+                    <h3>系统判定摘要</h3>
+                    <table>
+                      <tr><th>命中规则</th><th>分值</th><th>触发原因</th></tr>
+                      <tr><td>R003 同设备多账号领券</td><td class="diff-up">+45</td><td>近1h同设备领券账号数=6</td></tr>
+                      <tr><td>R007 同IP注册账号数超标</td><td class="diff-up">+40</td></tr>
+                      <tr><td colspan="3" class="muted">… 共命中 2 条规则，累计 85 分 → 高风险 Reject，自动创建案件</td></tr>
+                    </table>
+                    <div class="note" style="margin-top:10px"><b>证据提示：</b>该设备 1h 内 6 个账号领取 50 元档大额券 ×4 张；IP 与 9 个注册账号关联，建议直接拦截并拉黑设备。</div>
+                  </div>
+                </div>
+                <h3 style="margin:12px 0 8px">关联订单 / 券信息</h3>
+                <table>
+                  <tr><th>单据</th><th>类型</th><th>金额/面额</th><th>状态</th><th>操作</th></tr>
+                  <tr><td class="mono">CPN-20260927-88412</td><td>满199减50券</td><td>¥50</td><td><span class="tag high">已拦截</span></td><td><a>查看券详情</a></td></tr>
+                  <tr><td class="mono">ORD-20260927-55301</td><td>关联未支付订单</td><td>¥239.00</td><td><span class="tag gray">待处置联动</span></td><td><a>查看订单</a></td></tr>
+                </table>
+              </div>
+
+              <!-- 用户画像 -->
+              <div class="tabpane" id="w2">
+                <div class="row">
+                  <div class="card">
+                    <h3>账号画像</h3>
+                    <table>
+                      <tr><td class="muted">注册时间</td><td>2026-09-26 22:41（注册 1 天）<span class="tag high">新账号</span></td></tr>
+                      <tr><td class="muted">历史订单</td><td>0 单 / 0 元</td></tr>
+                      <tr><td class="muted">历史退款</td><td>0 次</td></tr>
+                      <tr><td class="muted">命中高危规则次数</td><td class="diff-up">2 次</td></tr>
+                      <tr><td class="muted">风险标签</td><td><span class="tag high">批量注册</span> <span class="tag high">设备聚集</span> <span class="tag mid">代理IP</span> <span class="tag mid">新号领券</span></td></tr>
+                    </table>
+                  </div>
+                  <div class="card">
+                    <h3>关联维度汇总</h3>
+                    <table>
+                      <tr><th>维度</th><th>关联实体数</th><th>异常度</th></tr>
+                      <tr><td>同设备账号</td><td>6</td><td class="diff-up">高</td></tr>
+                      <tr><td>同IP账号</td><td>9</td><td class="diff-up">高</td></tr>
+                      <tr><td>同收货手机号</td><td>0</td><td class="muted">—</td></tr>
+                      <tr><td>同收货地址</td><td>0</td><td class="muted">—</td></tr>
+                    </table>
+                    <div class="note" style="margin-top:10px"><b>折叠卡片说明：</b>画像区默认折叠，点击展开；数据来自画像与图谱模块实时聚合。</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 特征快照 -->
+              <div class="tabpane" id="w3">
+                <div class="note"><b>展示逻辑：</b>当前值 vs 用户历史均值 / 规则阈值，异常项红色高亮；特征缺失时显示降级标记。</div>
+                <table class="feat-table">
+                  <tr><th>特征项</th><th>当前值</th><th>历史均值</th><th>规则阈值</th><th>状态</th></tr>
+                  <tr><td>device_account_cnt_1h 同设备领券账号数</td><td class="diff-up">6</td><td>1.2</td><td>≥3</td><td><span class="tag high">异常</span></td></tr>
+                  <tr><td>ip_register_cnt 同IP注册账号数</td><td class="diff-up">9</td><td>1.0</td><td>≥5</td><td><span class="tag high">异常</span></td></tr>
+                  <tr><td>coupon_cnt_1h 近1h领券次数</td><td class="diff-up">4</td><td>0.5</td><td>≥3</td><td><span class="tag high">异常</span></td></tr>
+                  <tr><td>coupon_amount_1h 近1h领券面额</td><td class="diff-up">¥200</td><td>¥0</td><td>—</td><td><span class="tag mid">关注</span></td></tr>
+                  <tr><td>order_cnt_24h 近24h下单次数</td><td>0</td><td>0</td><td>—</td><td><span class="tag gray">正常</span></td></tr>
+                  <tr><td>account_age_d 账号注册天数</td><td class="diff-up">1</td><td>—</td><td>≤3 加权</td><td><span class="tag mid">关注</span></td></tr>
+                  <tr><td>ua_anomaly UA环境异常标识</td><td>true</td><td>false</td><td>—</td><td><span class="tag high">异常</span></td></tr>
+                </table>
+              </div>
+
+              <!-- 图谱 -->
+              <div class="tabpane" id="w4">
+                <div class="note"><b>交互说明：</b>节点可点击下钻（跳转对应用户/设备详情）；连线粗细表示关联强度；支持同设备/同IP/同地址图层切换。</div>
+                <div class="row" style="margin-bottom:8px">
+                  <select><option>关系类型：全部</option><option>同设备</option><option>同IP</option><option>同地址</option></select>
+                  <select><option>扩散深度：1跳</option><option>2跳</option></select>
+                  <button class="btn">导出图谱快照</button>
+                </div>
+                <div class="graph-box">
+                  <svg viewBox="0 0 640 260">
+                    <line x1="320" y1="130" x2="140" y2="60" stroke="#e5484d" stroke-width="2.5"/>
+                    <line x1="320" y1="130" x2="150" y2="190" stroke="#e5484d" stroke-width="2.5"/>
+                    <line x1="320" y1="130" x2="470" y2="55" stroke="#f5a623" stroke-width="1.6"/>
+                    <line x1="320" y1="130" x2="490" y2="130" stroke="#f5a623" stroke-width="1.6"/>
+                    <line x1="320" y1="130" x2="470" y2="205" stroke="#f5a623" stroke-width="1.6"/>
+                    <line x1="140" y1="60" x2="60" y2="110" stroke="#d8dee6" stroke-width="1.4"/>
+                    <line x1="470" y1="55" x2="570" y2="90" stroke="#d8dee6" stroke-width="1.4"/>
+                    <line x1="490" y1="130" x2="580" y2="185" stroke="#d8dee6" stroke-width="1.4"/>
+                    <g class="gnode" onclick="alert('下钻：设备 DEV_9f2a…c81e 详情（关联6账号，已命中R003/R007）')">
+                      <circle cx="320" cy="130" r="26" fill="#fdecec" stroke="#e5484d" stroke-width="2"/>
+                      <text x="320" y="127" text-anchor="middle" font-size="10" fill="#e5484d">设备</text>
+                      <text x="320" y="139" text-anchor="middle" font-size="8" fill="#e5484d">9f2a…c81e</text>
+                    </g>
+                    <g class="gnode" onclick="alert('下钻：用户 U10086（当前案件主体）')"><circle cx="140" cy="60" r="17" fill="#e8effc" stroke="#3b6fe0" stroke-width="2"/><text x="140" y="63" text-anchor="middle" font-size="8" fill="#3b6fe0">U10086★</text></g>
+                    <g class="gnode" onclick="alert('下钻：用户 U10087')"><circle cx="150" cy="190" r="17" fill="#e8effc" stroke="#3b6fe0" stroke-width="2"/><text x="150" y="193" text-anchor="middle" font-size="8" fill="#3b6fe0">U10087</text></g>
+                    <g class="gnode" onclick="alert('下钻：IP 112.74.103.55（机房代理，关联9账号）')"><circle cx="470" cy="55" r="17" fill="#fdf3e2" stroke="#c07d10" stroke-width="2"/><text x="470" y="58" text-anchor="middle" font-size="8" fill="#c07d10">IP .55</text></g>
+                    <g class="gnode" onclick="alert('下钻：用户 U10092')"><circle cx="490" cy="130" r="17" fill="#e8effc" stroke="#3b6fe0" stroke-width="2"/><text x="490" y="133" text-anchor="middle" font-size="8" fill="#3b6fe0">U10092</text></g>
+                    <g class="gnode" onclick="alert('下钻：用户 U10095')"><circle cx="470" cy="205" r="17" fill="#e8effc" stroke="#3b6fe0" stroke-width="2"/><text x="470" y="208" text-anchor="middle" font-size="8" fill="#3b6fe0">U10095</text></g>
+                    <g class="gnode"><circle cx="60" cy="110" r="13" fill="#eef1f5" stroke="#8a94a3"/><text x="60" y="113" text-anchor="middle" font-size="7" fill="#8a94a3">U10071</text></g>
+                    <g class="gnode"><circle cx="570" cy="90" r="13" fill="#eef1f5" stroke="#8a94a3"/><text x="570" y="93" text-anchor="middle" font-size="7" fill="#8a94a3">U10102</text></g>
+                    <g class="gnode"><circle cx="580" cy="185" r="13" fill="#eef1f5" stroke="#8a94a3"/><text x="580" y="188" text-anchor="middle" font-size="7" fill="#8a94a3">U10108</text></g>
+                    <text x="330" y="168" font-size="9" fill="#e5484d">同设备 ×6</text>
+                    <text x="395" y="86" font-size="9" fill="#c07d10">同IP ×9</text>
+                  </svg>
+                </div>
+                <div class="legend"><span><i style="background:#fdecec;border:1px solid #e5484d"></i>设备节点</span><span><i style="background:#e8effc;border:1px solid #3b6fe0"></i>用户节点</span><span><i style="background:#fdf3e2;border:1px solid #c07d10"></i>IP节点</span><span><i style="background:#eef1f5"></i>二跳扩散</span><span>★ 案件主体</span></div>
+              </div>
+
+              <!-- 处置 -->
+              <div class="tabpane" id="w5">
+                <div class="note"><b>处置规则：</b>提交前需填写处置原因备注与核查依据；点击"确认执行"触发二次确认弹窗；处置后联动业务单据状态并写入不可篡改审计日志。</div>
+                <div class="row">
+                  <div class="card">
+                    <h3>处理结论</h3>
+                    <div class="dispose-opts">
+                      <div class="opt" onclick="dopt(this,'pass')">✅ 放行<br><small class="muted">恢复关联单据</small></div>
+                      <div class="opt danger" onclick="dopt(this,'reject')">⛔ 拦截<br><small class="muted">取消订单/拒绝退款</small></div>
+                      <div class="opt danger" onclick="dopt(this,'black')">🚫 拉黑用户<br><small class="muted">拦截+主体入黑名单</small></div>
+                    </div>
+                    <div id="blackDims" style="display:none;margin-bottom:10px">
+                      <label class="muted" style="font-size:12px">选择加入黑名单的维度（可多选）：</label>
+                      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+                        <span class="tag blue" style="cursor:pointer" onclick="this.classList.toggle('blue');this.classList.toggle('gray')">用户账号 U10086</span>
+                        <span class="tag blue" style="cursor:pointer" onclick="this.classList.toggle('blue');this.classList.toggle('gray')">手机号 138****6621</span>
+                        <span class="tag blue" style="cursor:pointer" onclick="this.classList.toggle('blue');this.classList.toggle('gray')">IP 112.74.103.55</span>
+                        <span class="tag blue" style="cursor:pointer" onclick="this.classList.toggle('blue');this.classList.toggle('gray')">设备 DEV_9f2a…c81e</span>
+                      </div>
+                      <div style="margin-top:6px"><a onclick="openModal('mBlacklist')">关联名单添加弹窗（预览）→</a></div>
+                    </div>
+                    <div class="field"><label>处置原因备注 *</label><textarea rows="2" placeholder="例如：确认为羊毛党团伙领券行为，证据充分"></textarea></div>
+                    <div class="field"><label>核查依据 *</label><textarea rows="3" placeholder="例如：同设备6账号1h内领券4张大额券，命中R003(+45)/R007(+40)，综合85分"></textarea></div>
+                    <button class="btn primary" style="width:100%;padding:9px" onclick="openModal('mConfirm')">确认执行处置</button>
+                  </div>
+                  <div class="card">
+                    <h3>处置动作预览</h3>
+                    <table>
+                      <tr><th>系统联动动作</th><th>对象</th><th>结果</th></tr>
+                      <tr><td>拦截关联订单（取消未支付单）</td><td class="mono">ORD-…-55301</td><td>提交后执行</td></tr>
+                      <tr><td>作废涉事优惠券</td><td class="mono">CPN-…-88412</td><td>已拦截</td></tr>
+                      <tr><td>主体写入黑名单库</td><td>按所选维度</td><td>提交后执行</td></tr>
+                      <tr><td>写入审计日志（append-only）</td><td>AUD-自动生成</td><td>提交后执行</td></tr>
+                      <tr><td>案件状态流转</td><td>审核中 → 已处置</td><td>提交后执行</td></tr>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PG-03 策略与规则配置 ============ -->
+      <div class="page" id="page-policy">
+        <div class="note"><b>交互要点：</b>规则列表支持场景筛选、启停开关（行内即时生效）、权重分值行内编辑；"条件表达式"打开条件树构建器；新建规则默认停用，需仿真验证后开启。</div>
+        <div class="tabs" style="margin-bottom:12px">
+          <div class="tab active" onclick="ptab(this,'p1')">规则管理（18）</div>
+          <div class="tab" onclick="ptab(this,'p2')">名单库管理</div>
+        </div>
+
+        <div class="tabpane active" id="p1">
+          <div class="card" style="margin-bottom:12px">
+            <div class="row" style="align-items:center">
+              <select style="flex:0 0 180px"><option>全部场景</option><option>coupon_receive</option><option>order_create</option><option>order_pay</option><option>after_sale_apply</option><option>login</option></select>
+              <select style="flex:0 0 140px"><option>全部状态</option><option>启用中</option><option>已停用</option></select>
+              <input type="text" placeholder="搜索规则编码 / 名称" style="max-width:240px">
+              <span class="spacer" style="flex:1"></span>
+              <button class="btn primary" onclick="openModal('mRule')">＋ 新建规则</button>
+            </div>
+          </div>
+          <div class="card">
+            <table>
+              <tr><th>编码</th><th>规则名称</th><th>场景</th><th>条件表达式</th><th>分值</th><th>状态</th><th>更新时间</th><th>操作</th></tr>
+              <tr>
+                <td class="mono">R003</td><td>同设备多账号领券</td><td><span class="tag blue">coupon_receive</span></td>
+                <td class="mono muted">device_account_cnt_1h ≥ 3</td>
+                <td><input type="text" value="45" style="width:56px;text-align:center"></td>
+                <td><span class="switch on" onclick="this.classList.toggle('on')"></span></td>
+                <td class="muted">09-27 09:12</td>
+                <td><a onclick="openModal('mRule')">编辑</a> · <a onclick="go('simulate')">仿真</a> · <a style="color:var(--high)">删除</a></td>
+              </tr>
+              <tr>
+                <td class="mono">R007</td><td>同IP注册账号数超标</td><td><span class="tag gray">通用</span></td>
+                <td class="mono muted">ip_register_cnt ≥ 5</td>
+                <td><input type="text" value="40" style="width:56px;text-align:center"></td>
+                <td><span class="switch on" onclick="this.classList.toggle('on')"></span></td>
+                <td class="muted">09-26 18:40</td>
+                <td><a onclick="openModal('mRule')">编辑</a> · <a onclick="go('simulate')">仿真</a> · <a style="color:var(--high)">删除</a></td>
+              </tr>
+              <tr>
+                <td class="mono">R012</td><td>近1h领券频次异常</td><td><span class="tag blue">coupon_receive</span></td>
+                <td class="mono muted">coupon_cnt_1h ≥ 3 AND account_age_d ≤ 3</td>
+                <td><input type="text" value="20" style="width:56px;text-align:center"></td>
+                <td><span class="switch on" onclick="this.classList.toggle('on')"></span></td>
+                <td class="muted">09-26 11:02</td>
+                <td><a onclick="openModal('mRule')">编辑</a> · <a onclick="go('simulate')">仿真</a> · <a style="color:var(--high)">删除</a></td>
+              </tr>
+              <tr>
+                <td class="mono">R021</td><td>高额未收货退款高频</td><td><span class="tag blue">after_sale_apply</span></td>
+                <td class="mono muted">refund_amount ≥ 500 AND refund_cnt_24h ≥ 3</td>
+                <td><input type="text" value="35" style="width:56px;text-align:center"></td>
+                <td><span class="switch on" onclick="this.classList.toggle('on')"></span></td>
+                <td class="muted">09-25 16:20</td>
+                <td><a onclick="openModal('mRule')">编辑</a> · <a onclick="go('simulate')">仿真</a> · <a style="color:var(--high)">删除</a></td>
+              </tr>
+              <tr style="opacity:.55">
+                <td class="mono">R026</td><td>黄牛高频下单限量商品</td><td><span class="tag blue">order_create</span></td>
+                <td class="mono muted">order_cnt_10m ≥ 5 AND sku_limit_flag = true</td>
+                <td><input type="text" value="50" style="width:56px;text-align:center"></td>
+                <td><span class="switch" onclick="this.classList.toggle('on')"></span></td>
+                <td class="muted">09-27 08:55（新建未验证）</td>
+                <td><a onclick="openModal('mRule')">编辑</a> · <a onclick="go('simulate')">仿真</a> · <a style="color:var(--high)">删除</a></td>
+              </tr>
+              <tr>
+                <td class="mono">R015</td><td>同收货地址订单聚集</td><td><span class="tag blue">order_create</span></td>
+                <td class="mono muted">addr_order_cnt_24h ≥ 5</td>
+                <td><input type="text" value="15" style="width:56px;text-align:center"></td>
+                <td><span class="switch on" onclick="this.classList.toggle('on')"></span></td>
+                <td class="muted">09-20 10:00</td>
+                <td><a onclick="openModal('mRule')">编辑</a> · <a onclick="go('simulate')">仿真</a> · <a style="color:var(--high)">删除</a></td>
+              </tr>
+            </table>
+            <div class="muted" style="text-align:center;padding:10px 0">‹ 1 2 3 ›　共 18 条</div>
+          </div>
+        </div>
+
+        <div class="tabpane" id="p2">
+          <div class="card" style="margin-bottom:12px">
+            <div class="row" style="align-items:center">
+              <div style="display:flex;gap:6px">
+                <span class="tag high">黑名单 2,431</span><span class="tag low">白名单 186</span><span class="tag mid">灰名单 57</span>
+              </div>
+              <select style="flex:0 0 160px"><option>维度：全部</option><option>用户</option><option>手机号</option><option>IP</option><option>设备</option><option>地址</option></select>
+              <input type="text" placeholder="搜索实体值" style="max-width:220px">
+              <span style="flex:1"></span>
+              <button class="btn" onclick="openModal('mImport')">⬆ 批量导入</button>
+              <button class="btn primary" onclick="openModal('mBlacklist')">＋ 添加名单</button>
+            </div>
+          </div>
+          <div class="card">
+            <table>
+              <tr><th>名单类型</th><th>维度</th><th>实体值</th><th>加入原因</th><th>操作人</th><th>生效时间</th><th>操作</th></tr>
+              <tr><td><span class="tag high">黑名单</span></td><td>设备</td><td class="mono">DEV_3c81…aa02</td><td>羊毛党团伙设备（案件CASE-…-005101）</td><td>审核员·李敏</td><td>09-27 09:30</td><td><a style="color:var(--high)">移出</a></td></tr>
+              <tr><td><span class="tag high">黑名单</span></td><td>IP</td><td class="mono">112.74.103.55</td><td>机房代理IP聚集领券</td><td>审核员·李敏</td><td>09-27 09:31</td><td><a style="color:var(--high)">移出</a></td></tr>
+              <tr><td><span class="tag high">黑名单</span></td><td>用户</td><td class="mono">U09877</td><td>多次高额恶意退款</td><td>审核员·王强</td><td>09-26 15:12</td><td><a style="color:var(--high)">移出</a></td></tr>
+              <tr><td><span class="tag low">白名单</span></td><td>用户</td><td class="mono">U00001（内测账号）</td><td>压测白名单，跳过全部规则</td><td>管理员·admin</td><td>09-01 00:00</td><td><a style="color:var(--high)">移出</a></td></tr>
+              <tr><td><span class="tag mid">灰名单</span></td><td>手机号</td><td class="mono">138****0033</td><td>观察：新号高频领券待复核</td><td>策略师·陈晨</td><td>09-26 20:44</td><td><a>转黑</a> · <a>转白</a></td></tr>
+            </table>
+            <div class="note" style="margin-top:10px"><b>约束说明：</b>同一实体同一维度仅属一种名单类型（后写覆盖并留痕）；黑名单命中直接 Reject，白名单直接 Pass。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PG-04 仿真测试 ============ -->
+      <div class="page" id="page-simulate">
+        <div class="note"><b>交互要点：</b>支持模板加载/JSON与表单双模式；点击"执行仿真"后单步呈现 ①特征提取 ②规则命中链路 ③决策输出；仿真不产生真实案件、不写业务状态。</div>
+        <div class="sim-grid">
+          <div>
+            <div class="card" style="margin-bottom:12px">
+              <h3>测试用例模板</h3>
+              <table>
+                <tr><td><a onclick="loadTpl('羊毛党批量领券（高危）',this)">🧸 羊毛党批量领券（高危）</a></td><td class="muted">期望：Reject</td></tr>
+                <tr><td><a onclick="loadTpl('恶意退款欺诈（人审）',this)">↩ 恶意退款欺诈（人审）</a></td><td class="muted">期望：Review</td></tr>
+                <tr><td><a onclick="loadTpl('正常用户领券（通过）',this)">😊 正常用户领券（通过）</a></td><td class="muted">期望：Pass</td></tr>
+                <tr><td><a onclick="loadTpl('黄牛囤货下单（自建）',this)">🐂 黄牛囤货下单（自建）</a></td><td class="muted">期望：Reject</td></tr>
+              </table>
+            </div>
+            <div class="card">
+              <h3>事件参数构建 <span>
+                <span class="tag blue" id="fm-form" onclick="simMode('form')">表单模式</span>
+                <span class="tag gray" id="fm-json" onclick="simMode('json')">JSON模式</span>
+              </span></h3>
+              <div id="simForm">
+                <div class="field"><label>事件类型</label>
+                  <select id="sType"><option>coupon_receive</option><option>login</option><option>order_create</option><option>order_pay</option><option>after_sale_apply</option></select>
+                </div>
+                <div class="row">
+                  <div class="field"><label>用户编号</label><input id="sUser" type="text" value="U10086"></div>
+                  <div class="field"><label>设备指纹</label><input id="sDev" type="text" value="DEV_9f2a…c81e"></div>
+                </div>
+                <div class="row">
+                  <div class="field"><label>请求 IP</label><input id="sIp" type="text" value="112.74.103.55"></div>
+                  <div class="field"><label>业务单据号</label><input id="sOrder" type="text" value="CPN-20260927-TEST01"></div>
+                </div>
+                <div class="field"><label>事件参数（JSON）</label><textarea id="sPayload" rows="4" class="mono">{"couponId":"CPN_L50","amount":50,"channel":"h5"}</textarea></div>
+              </div>
+              <div id="simJson" style="display:none">
+                <textarea rows="11" class="mono">{
+  "eventType": "coupon_receive",
+  "userId": "U10086",
+  "deviceId": "DEV_9f2a…c81e",
+  "ip": "112.74.103.55",
+  "bizOrderId": "CPN-20260927-TEST01",
+  "payload": { "couponId": "CPN_L50", "amount": 50 }
+}</textarea>
+              </div>
+              <button class="btn primary" style="width:100%;padding:9px;margin-top:8px" onclick="runSim()">▶ 执行仿真检测</button>
+            </div>
+          </div>
+          <div class="card" id="simResult">
+            <h3>执行链路可视化 <span class="tip">单步回溯</span></h3>
+            <div class="chain-step">
+              <div class="idx" id="i1">1</div><div class="line" id="l1"></div>
+              <div class="chain-body">
+                <b>黑白名单快速过滤</b>
+                <div id="r0" class="muted" style="margin-top:6px">待执行</div>
+              </div>
+            </div>
+            <div class="chain-step">
+              <div class="idx" id="i2">2</div><div class="line" id="l2"></div>
+              <div class="chain-body">
+                <b>特征提取结果（滑动窗口快照）</b>
+                <div id="r1" class="muted" style="margin-top:6px">待执行</div>
+              </div>
+            </div>
+            <div class="chain-step">
+              <div class="idx" id="i3">3</div><div class="line" id="l3"></div>
+              <div class="chain-body">
+                <b>规则命中链路</b>
+                <div id="r2" class="muted" style="margin-top:6px">待执行</div>
+              </div>
+            </div>
+            <div class="chain-step">
+              <div class="idx pending" id="i4">4</div>
+              <div class="chain-body">
+                <b>综合决策输出</b>
+                <div id="r3" style="margin-top:8px" class="muted">待执行 —— 仿真不产生真实案件、不写业务状态</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PG-05 审计流水 ============ -->
+      <div class="page" id="page-audit">
+        <div class="note"><b>说明：</b>审计日志 append-only、不可篡改，覆盖审核处置与规则变更两类操作；支持按操作人/类型/时间检索。</div>
+        <div class="card" style="margin-bottom:12px">
+          <div class="row" style="align-items:center">
+            <select style="flex:0 0 160px"><option>全部操作类型</option><option>案件处置</option><option>规则变更</option><option>名单变更</option><option>登录</option></select>
+            <select style="flex:0 0 160px"><option>全部操作人</option><option>审核员·李敏</option><option>策略师·陈晨</option><option>管理员·admin</option></select>
+            <input type="text" placeholder="2026-09-26 ~ 2026-09-27" style="max-width:220px">
+            <span style="flex:1"></span>
+            <button class="btn primary">查询</button>
+          </div>
+        </div>
+        <div class="card">
+          <table>
+            <tr><th>日志编号</th><th>操作类型</th><th>操作人</th><th>操作内容</th><th>对象</th><th>时间</th></tr>
+            <tr><td class="mono">AUD-90218</td><td><span class="tag high">案件处置</span></td><td>审核员·李敏</td><td>案件 CASE-…-005101 结论=拉黑，处置动作=取消订单+设备/IP/账号入黑名单</td><td><a onclick="go('workbench')">CASE-…-005101</a></td><td>09-27 09:31:02</td></tr>
+            <tr><td class="mono">AUD-90217</td><td><span class="tag blue">规则变更</span></td><td>策略师·陈晨</td><td>新增规则 R026（黄牛高频下单限量商品，分值50），初始状态=停用</td><td><a onclick="go('policy')">R026</a></td><td>09-27 08:55:40</td></tr>
+            <tr><td class="mono">AUD-90216</td><td><span class="tag blue">规则变更</span></td><td>策略师·陈晨</td><td>调整 R003 分值 40 → 45（依据仿真回测误伤率 0.2%）</td><td><a>R003</a></td><td>09-27 09:12:11</td></tr>
+            <tr><td class="mono">AUD-90215</td><td><span class="tag mid">名单变更</span></td><td>审核员·王强</td><td>用户 U09877 移入黑名单（维度=用户）</td><td>U09877</td><td>09-26 15:12:33</td></tr>
+            <tr><td class="mono">AUD-90214</td><td><span class="tag gray">登录</span></td><td>管理员·admin</td><td>登录成功（IP 10.2.8.11）</td><td>—</td><td>09-26 14:02:01</td></tr>
+          </table>
+          <div class="muted" style="text-align:center;padding:10px 0">‹ 1 2 … 1846 ›　共 92,307 条</div>
+        </div>
+      </div>
+
+      <!-- ============ PG-06 系统运行监控 ============ -->
+      <div class="page" id="page-system">
+        <div class="metrics">
+          <div class="card metric"><span class="muted">事件吞吐（当前）</span><div class="num">342 <small style="font-size:12px;color:var(--muted)">TPS</small></div><div class="delta up">峰值 518 TPS</div></div>
+          <div class="card metric"><span class="muted">决策接口 P99</span><div class="num" style="color:var(--low)">168 <small style="font-size:12px;color:var(--muted)">ms</small></div><div class="delta">目标 ≤ 200ms ✅</div></div>
+          <div class="card metric"><span class="muted">特征引擎降级标记</span><div class="num" style="color:var(--low)">0.3%</div><div class="delta">快照 degraded 占比</div></div>
+          <div class="card metric"><span class="muted">接口健康度</span><div class="num" style="color:var(--low)">99.98%</div><div class="delta up">近24h 无故障</div></div>
+        </div>
+        <div class="grid2b">
+          <div class="card"><h3>各模块耗时分布</h3>
+            <table>
+              <tr><th>链路阶段</th><th>P50</th><th>P95</th><th>P99</th></tr>
+              <tr><td>事件网关·格式校验</td><td>3ms</td><td>8ms</td><td>12ms</td></tr>
+              <tr><td>黑白名单过滤</td><td>2ms</td><td>5ms</td><td>9ms</td></tr>
+              <tr><td>特征计算引擎</td><td>28ms</td><td>74ms</td><td>96ms</td></tr>
+              <tr><td>规则决策引擎</td><td>15ms</td><td>38ms</td><td>51ms</td></tr>
+            </table>
+          </div>
+          <div class="card"><h3>运行配置（管理员）</h3>
+            <table>
+              <tr><td>Challenge 二次验证开关</td><td><span class="switch" onclick="this.classList.toggle('on')"></span></td></tr>
+              <tr><td>中风险阈值（Review 线）</td><td><input type="text" value="60" style="width:70px;text-align:center"></td></tr>
+              <tr><td>高风险阈值（Reject 线）</td><td><input type="text" value="80" style="width:70px;text-align:center"></td></tr>
+              <tr><td>案件自动归档天数</td><td><input type="text" value="30" style="width:70px;text-align:center"></td></tr>
+            </table>
+            <button class="btn primary" style="margin-top:10px">保存配置（记入审计）</button>
+          </div>
+          <div class="card"><h3>事件吞吐趋势 <span class="tip">近1h</span></h3>
+            <svg viewBox="0 0 300 140" width="100%" height="140">
+              <path d="M0,110 L30,100 L60,105 L90,80 L120,70 L150,88 L180,60 L210,50 L240,66 L270,44 L300,52" fill="none" stroke="#3b6fe0" stroke-width="2"/>
+              <path d="M0,125 L30,120 L60,122 L90,112 L120,110 L150,116 L180,105 L210,100 L240,108 L270,96 L300,100" fill="none" stroke="#3fb27f" stroke-width="2" stroke-dasharray="4 3"/>
+            </svg>
+            <div class="legend"><span><i style="background:#3b6fe0"></i>请求TPS</span><span><i style="background:#3fb27f"></i>持久化TPS（异步）</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ==================== 弹窗：处置二次确认 ==================== -->
+<div class="modal-mask" id="mConfirm">
+  <div class="modal" style="width:440px">
+    <div class="m-head">⚠ 处置操作二次确认 <span class="m-close" onclick="closeModal('mConfirm')">✕</span></div>
+    <div class="m-body">
+      <p style="margin-bottom:10px">确认对案件 <b class="mono">CASE-20260927-005218</b> 执行 <b style="color:var(--high)">「拉黑用户」</b> 处置？</p>
+      <table>
+        <tr><td class="muted" width="35%">联动动作</td><td>取消关联订单 · 主体写入黑名单（账号/手机号/IP/设备）</td></tr>
+        <tr><td class="muted">审计留痕</td><td>处置人 + 结论 + 依据将写入不可篡改审计日志</td></tr>
+        <tr><td class="muted">案件状态</td><td>审核中 → 已处置</td></tr>
+      </table>
+      <div class="field" style="margin-top:12px"><label>请输入操作密码 / 动态口令确认</label><input type="text" placeholder="（原型：任意输入）"></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn" onclick="closeModal('mConfirm')">取消</button>
+      <button class="btn danger" onclick="disposeDone()">确认执行</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 弹窗：添加名单 ==================== -->
+<div class="modal-mask" id="mBlacklist">
+  <div class="modal">
+    <div class="m-head">添加名单 <span class="m-close" onclick="closeModal('mBlacklist')">✕</span></div>
+    <div class="m-body">
+      <div class="row">
+        <div class="field"><label>名单类型</label><select><option>黑名单</option><option>白名单</option><option>灰名单</option></select></div>
+        <div class="field"><label>维度</label><select><option>用户</option><option>手机号</option><option>IP</option><option>设备</option><option>地址</option></select></div>
+      </div>
+      <div class="field"><label>实体值（多个用换行分隔）</label><textarea rows="4" class="mono">U10086
+DEV_9f2a…c81e</textarea></div>
+      <div class="row">
+        <div class="field"><label>生效时间</label><input type="text" value="2026-09-27 10:30"></div>
+        <div class="field"><label>失效时间</label><input type="text" value="永久"></div>
+      </div>
+      <div class="field"><label>加入原因</label><input type="text" value="羊毛党团伙领券（关联案件 CASE-20260927-005218）"></div>
+      <div class="note"><b>约束：</b>同一实体同一维度仅属一种名单类型，重复添加将覆盖并留痕。</div>
+    </div>
+    <div class="m-foot"><button class="btn" onclick="closeModal('mBlacklist')">取消</button><button class="btn primary" onclick="closeModal('mBlacklist');toast('名单已添加（原型演示）')">确认添加</button></div>
+  </div>
+</div>
+
+<!-- ==================== 弹窗：规则编辑 / 条件树构建器 ==================== -->
+<div class="modal-mask" id="mRule">
+  <div class="modal" style="width:600px">
+    <div class="m-head">编辑规则 R003 · 同设备多账号领券 <span class="m-close" onclick="closeModal('mRule')">✕</span></div>
+    <div class="m-body">
+      <div class="row">
+        <div class="field"><label>规则编码</label><input type="text" value="R003" disabled></div>
+        <div class="field"><label>规则名称</label><input type="text" value="同设备多账号领券"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>所属场景</label><select><option>coupon_receive</option><option>通用</option></select></div>
+        <div class="field"><label>风险分值（权重）</label><input type="text" value="45"></div>
+      </div>
+      <div class="field"><label>条件表达式（树状构建器）</label>
+        <div class="cond-group">
+          <span class="op-badge">且 AND</span>
+          <div class="cond-row">
+            <select><option>device_account_cnt_1h</option><option>coupon_cnt_1h</option><option>ip_register_cnt</option></select>
+            <select style="flex:0 0 80px"><option>≥</option><option>></option><option>==</option><option>BETWEEN</option></select>
+            <input type="text" value="3">
+            <button class="btn ghost">✕</button>
+          </div>
+          <div class="cond-row">
+            <select><option>coupon_amount_tier</option><option>account_age_d</option></select>
+            <select style="flex:0 0 80px"><option>==</option><option>≥</option></select>
+            <input type="text" value="HIGH">
+            <button class="btn ghost">✕</button>
+          </div>
+          <div class="cond-group" style="margin-left:24px">
+            <span class="op-badge" style="background:#fdf3e2;color:#c07d10">或 OR（子组）</span>
+            <div class="cond-row">
+              <select><option>ua_anomaly</option></select><select style="flex:0 0 80px"><option>==</option></select><input type="text" value="true"><button class="btn ghost">✕</button>
+            </div>
+            <button class="btn ghost">＋ 添加条件</button>
+          </div>
+          <button class="btn ghost" style="margin-top:8px">＋ 添加条件组</button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field"><label>触发原因描述模板</label><input type="text" value="近1h同设备领券账号数={device_account_cnt_1h}"></div>
+        <div class="field"><label>启用状态</label><select><option>停用（新建默认）</option><option>启用</option></select></div>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn" onclick="closeModal('mRule')">取消</button>
+      <button class="btn" onclick="closeModal('mRule');go('simulate');toast('已跳转仿真测试，可载入样本验证本规则')">仿真验证</button>
+      <button class="btn primary" onclick="closeModal('mRule');toast('规则已保存，变更记入审计日志（原型演示）')">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 弹窗：批量导入 ==================== -->
+<div class="modal-mask" id="mImport">
+  <div class="modal" style="width:460px">
+    <div class="m-head">名单批量导入 <span class="m-close" onclick="closeModal('mImport')">✕</span></div>
+    <div class="m-body">
+      <div class="field"><label>① 下载模板</label><button class="btn">⬇ 名单导入模板.csv</button></div>
+      <div class="field"><label>② 选择名单类型与维度</label>
+        <div class="row"><select><option>黑名单</option></select><select><option>IP</option><option>用户</option></select></div>
+      </div>
+      <div class="field"><label>③ 上传文件</label><div class="card" style="border-style:dashed;text-align:center;padding:24px;color:var(--muted);background:#fafbfd">点击或拖拽上传 .csv / .xlsx（≤10MB）</div></div>
+      <div class="field"><label>④ 导入结果预览（原型示例）</label>
+        <table>
+          <tr><th>行</th><th>实体值</th><th>结果</th></tr>
+          <tr><td>1</td><td class="mono">112.74.103.55</td><td style="color:var(--low)">✓ 成功（覆盖原灰名单）</td></tr>
+          <tr><td>2</td><td class="mono">45.121.x.x</td><td style="color:var(--low)">✓ 成功</td></tr>
+          <tr><td>3</td><td class="mono">not-an-ip</td><td style="color:var(--high)">✗ 格式校验失败</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="m-foot"><button class="btn" onclick="closeModal('mImport')">关闭</button><button class="btn primary" onclick="closeModal('mImport');toast('导入完成：成功2条，失败1条（原型演示）')">确认导入</button></div>
+  </div>
+</div>
+
+<!-- toast -->
+<div id="toast" style="position:fixed;left:50%;top:60px;transform:translateX(-50%);background:#1e2733;color:#fff;padding:9px 20px;border-radius:8px;font-size:13px;display:none;z-index:99"></div>
+
+<script>
+/* ===== 登录与路由 ===== */
+const ROLES={auditor:'风控审核员',strategist:'风控策略师',admin:'系统管理员'};
+function doLogin(r){sessionStorage.setItem('role',r);document.getElementById('login').style.display='none';document.getElementById('app').classList.add('show');document.getElementById('curRole').textContent=ROLES[r];}
+function logout(){document.getElementById('app').classList.remove('show');document.getElementById('login').style.display='flex';}
+function go(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('aside nav a').forEach(a=>a.classList.toggle('active',a.dataset.page===p));
+  const titles={dashboard:'风控态势大盘',workbench:'风控审核工作台',policy:'策略与规则配置',simulate:'事件仿真测试',audit:'操作审计流水',system:'系统运行监控'};
+  document.getElementById('pageTitle').textContent=titles[p];
+}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2200);}
+function openModal(id){document.getElementById(id).classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+
+/* ===== 工作台 ===== */
+const CASES=[
+  {id:'CASE-20260927-005218',lvl:'high',lvlTxt:'高危',scene:'coupon_receive 营销领券',user:'U10086',time:'10:21:33',score:85,st:'待审',rules:['R003','R007']},
+  {id:'CASE-20260927-005217',lvl:'high',lvlTxt:'高危',scene:'coupon_receive 营销领券',user:'U10087',time:'10:21:29',score:85,st:'待审',rules:['R003','R007']},
+  {id:'CASE-20260927-005210',lvl:'mid',lvlTxt:'中风险',scene:'after_sale_apply 售后退款',user:'U09912',time:'10:02:11',score:72,st:'待审',rules:['R021','R015']},
+  {id:'CASE-20260927-005198',lvl:'mid',lvlTxt:'中风险',scene:'order_create 订单创建',user:'U09855',time:'09:47:05',score:65,st:'审核中',rules:['R015']},
+  {id:'CASE-20260927-005101',lvl:'high',lvlTxt:'高危',scene:'coupon_receive 营销领券',user:'U09870',time:'09:30:41',score:88,st:'已处置',rules:['R003','R007','R012']},
+];
+function renderCases(){
+  document.getElementById('caseList').innerHTML=CASES.map((c,i)=>`
+    <div class="case-item ${i===0?'sel':''}" onclick="selCase(this,${i})">
+      <div class="top"><b class="mono" style="font-size:12px">${c.id}</b><span class="tag ${c.lvl}">${c.lvlTxt} ${c.score}</span></div>
+      <div style="margin:3px 0">${c.scene}</div>
+      <div class="muted" style="font-size:11px">用户 ${c.user} · ${c.time} · <span class="tag gray">${c.st}</span> ${c.rules.map(r=>`<span class="tag blue">${r}</span>`).join(' ')}</div>
+    </div>`).join('');
+}
+function selCase(el){document.querySelectorAll('.case-item').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');}
+function wtab(el,id){el.parentNode.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  el.closest('.card').querySelectorAll('.tabpane').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');}
+function dopt(el,type){
+  el.parentNode.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
+  document.getElementById('blackDims').style.display=type==='black'?'block':'none';
+}
+function disposeDone(){closeModal('mConfirm');toast('处置已执行：订单联动取消、主体入黑名单、审计留痕完成（原型演示）');}
+
+/* ===== 策略页 tab ===== */
+function ptab(el,id){el.parentNode.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  document.querySelectorAll('#page-policy > .tabpane').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');}
+
+/* ===== 仿真页 ===== */
+function simMode(m){
+  document.getElementById('simForm').style.display=m==='form'?'block':'none';
+  document.getElementById('simJson').style.display=m==='json'?'block':'none';
+  const f=document.getElementById('fm-form'),j=document.getElementById('fm-json');
+  f.className=m==='form'?'tag blue':'tag gray';j.className=m==='json'?'tag blue':'tag gray';
+}
+function loadTpl(name,el){
+  document.querySelectorAll('#page-simulate table a').forEach(a=>a.style.fontWeight='');
+  if(el)el.style.fontWeight='700';
+  if(name.includes('羊毛党')){sUser.value='U10086';sDev.value='DEV_9f2a…c81e';sIp.value='112.74.103.55';sPayload.value='{"couponId":"CPN_L50","amount":50,"channel":"h5"}';}
+  if(name.includes('退款')){sType.value='after_sale_apply';sUser.value='U09912';sDev.value='DEV_1a2b…77cd';sIp.value='223.104.3.88';sPayload.value='{"orderId":"ORD-20260925-11209","refundAmount":1688,"reason":"未收到货"}';}
+  if(name.includes('正常')){sType.value='coupon_receive';sUser.value='U05123';sDev.value='DEV_88ee…01aa';sIp.value='117.136.8.201';sPayload.value='{"couponId":"CPN_L5","amount":5,"channel":"app"}';}
+  if(name.includes('黄牛')){sType.value='order_create';sUser.value='U09701';sDev.value='DEV_5f6e…90bb';sIp.value='61.144.22.7';sPayload.value='{"skuId":"SKU_LIMIT_001","qty":4,"amount":19996}';}
+  resetSim();toast('已载入模板：'+name);
+}
+function resetSim(){
+  ['i1','i2','i3'].forEach(i=>document.getElementById(i).className='idx');
+  document.getElementById('i4').className='idx pending';
+  ['l1','l2','l3'].forEach(i=>document.getElementById(i).className='line');
+  ['r0','r1','r2','r3'].forEach(i=>{const e=document.getElementById(i);e.className='muted';e.style.marginTop='6px';e.textContent='待执行';});
+}
+function runSim(){
+  resetSim();
+  const step=(i,html,cls)=>{const e=document.getElementById(i);e.innerHTML=html;if(cls)e.className=cls;};
+  setTimeout(()=>{
+    document.getElementById('i1').classList.add('done');
+    step('r0','黑名单：未命中　|　白名单：未命中　→ <b>进入规则决策</b>');
+    document.getElementById('l1').classList.add('done');
+    document.getElementById('i2').classList.add('done');
+    step('r1',`<table class="feat-table" style="margin-top:6px">
+      <tr><td>device_account_cnt_1h</td><td class="diff-up">6</td><td class="muted">（阈值≥3）</td></tr>
+      <tr><td>ip_register_cnt</td><td class="diff-up">9</td><td class="muted">（阈值≥5）</td></tr>
+      <tr><td>coupon_cnt_1h</td><td class="diff-up">4</td><td class="muted">（阈值≥3）</td></tr>
+      <tr><td>account_age_d</td><td>1</td><td class="muted">（≤3 加权）</td></tr></table>`);
+    document.getElementById('l2').classList.add('done');
+    document.getElementById('i3').classList.add('done');
+    step('r2',`
+      <div class="rule-hit hit"><span>✅ R003 同设备多账号领券</span><b>+45</b></div>
+      <div class="rule-hit hit"><span>✅ R007 同IP注册账号数超标</span><b>+40</b></div>
+      <div class="rule-hit"><span>◻ R012 近1h领券频次异常</span><span class="no">未命中（+0）</span></div>
+      <div class="rule-hit"><span>◻ R015 同收货地址订单聚集</span><span class="no">未命中（+0）</span></div>`);
+    document.getElementById('l3').classList.add('done');
+    const score=85,level=score>=80?['Reject','reject','高风险·直接拦截并自动创建风险案件']:score>=60?['Review','review','中风险·生成人工审核案件']:['Pass','pass','低风险·正常放行'];
+    document.getElementById('i4').classList.add('done');document.getElementById('i4').classList.remove('pending');
+    step('r3',`<div class="verdict ${level[1]}" style="margin-top:6px">
+      综合得分 <span class="score-ring">${score}</span> 分 → 决策：<span style="font-size:18px">${level[0]}</span><br>
+      <small style="font-weight:400;font-size:12px">${level[2]}</small></div>
+      <div class="muted" style="margin-top:8px;font-size:11px">※ 仿真模式：不产生真实案件、不写业务状态 · 用时 172ms（P99 内）</div>`);
+  },300);
+}
+
+/* ===== 大盘事件滚屏 ===== */
+const EVENTS=[
+  ['10:21:33','coupon_receive','U10086','<span class="tag high">Reject 85</span>'],
+  ['10:21:31','order_pay','U05123','<span class="tag low">Pass 12</span>'],
+  ['10:21:28','after_sale_apply','U09912','<span class="tag mid">Review 72</span>'],
+  ['10:21:25','coupon_receive','U10087','<span class="tag high">Reject 85</span>'],
+  ['10:21:20','login','U04471','<span class="tag low">Pass 5</span>'],
+  ['10:21:16','order_create','U09855','<span class="tag mid">Review 65</span>'],
+  ['10:21:12','coupon_receive','U10092','<span class="tag high">Reject 80</span>'],
+  ['10:21:08','order_pay','U03210','<span class="tag low">Pass 8</span>'],
+];
+(function(){const ul=document.getElementById('feed');const html=EVENTS.map(e=>`<li><span class="muted mono">${e[0]}</span><span class="tag blue">${e[1]}</span><a>${e[2]}</a><span style="margin-left:auto">${e[3]}</span></li>`).join('');ul.innerHTML=html+html;})();
+
+renderCases();
+</script>
+</body>
+</html>

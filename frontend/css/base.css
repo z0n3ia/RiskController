@@ -1,0 +1,111 @@
+/* ============================================================
+ * base.css —— 设计变量与通用组件
+ * 电商实时风险控制系统 · 前端
+ * ============================================================ */
+:root{
+  --bg:#f4f6f9; --panel:#fff; --line:#d8dee6; --txt:#333; --muted:#8a94a3;
+  --primary:#3b6fe0; --primary-weak:#e8effc;
+  --high:#e5484d; --mid:#f5a623; --low:#3fb27f;
+  --radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei",system-ui,sans-serif}
+body{background:var(--bg);color:var(--txt);font-size:13px}
+a{color:var(--primary);text-decoration:none;cursor:pointer}
+a:hover{text-decoration:underline}
+.muted{color:var(--muted)}
+.mono{font-family:Consolas,"Courier New",monospace}
+.spacer{flex:1}
+
+/* ---------- 卡片 ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+.card h3{font-size:13px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.card h3 .tip{font-weight:400;color:var(--muted);font-size:11px}
+
+/* ---------- 按钮 ---------- */
+.btn{display:inline-block;border:1px solid var(--line);background:#fff;border-radius:6px;
+  padding:5px 12px;cursor:pointer;font-size:12px;color:var(--txt);transition:.15s;user-select:none}
+.btn:hover{border-color:var(--primary);color:var(--primary)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.primary:hover{opacity:.88;color:#fff}
+.btn.danger{background:var(--high);border-color:var(--high);color:#fff}
+.btn.danger:hover{opacity:.88;color:#fff}
+.btn.ghost{border-style:dashed;color:var(--muted)}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.5;cursor:not-allowed;pointer-events:none}
+
+/* ---------- 标签 ---------- */
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;line-height:18px;white-space:nowrap}
+.tag.high{background:#fdecec;color:var(--high)}
+.tag.mid{background:#fdf3e2;color:#c07d10}
+.tag.low{background:#e6f6ef;color:#2b8a63}
+.tag.gray{background:#eef1f5;color:var(--muted)}
+.tag.blue{background:var(--primary-weak);color:var(--primary)}
+.tag.click{cursor:pointer}
+
+/* ---------- 表格 ---------- */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#f7f9fb;color:var(--muted);font-weight:500;text-align:left;
+  padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid #eef1f5;vertical-align:middle}
+tr:hover td{background:#fafbfd}
+.diff-up{color:var(--high);font-weight:600}
+
+/* ---------- 表单 ---------- */
+input[type=text],input[type=password],select,textarea{
+  border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12px;background:#fff;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+input.err,textarea.err,select.err{border-color:var(--high);background:#fffafa}
+.field{margin-bottom:10px}
+.field label{display:block;color:var(--muted);margin-bottom:4px;font-size:12px}
+.field .req::after{content:" *";color:var(--high)}
+.row{display:flex;gap:12px}
+.row>*{flex:1;min-width:0}
+
+/* ---------- 开关 ---------- */
+.switch{position:relative;display:inline-block;width:34px;height:18px;background:#cfd6df;
+  border-radius:9px;cursor:pointer;transition:.2s;flex:none;vertical-align:middle}
+.switch::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;
+  background:#fff;border-radius:50%;transition:.2s}
+.switch.on{background:var(--low)}
+.switch.on::after{left:18px}
+
+/* ---------- 徽标点 / 图例 ---------- */
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+
+/* ---------- 交互说明标注 ---------- */
+.note{border:1px dashed #e0a800;background:#fffbe8;color:#8a6d00;font-size:11px;
+  padding:6px 10px;border-radius:6px;margin-bottom:12px;line-height:1.6}
+.note b{color:#6b5400}
+
+/* ---------- 分页 ---------- */
+.pagination{display:flex;justify-content:center;align-items:center;gap:6px;padding:12px 0 2px;font-size:12px}
+.pagination .pg{min-width:26px;height:26px;line-height:24px;text-align:center;border:1px solid var(--line);
+  border-radius:6px;cursor:pointer;background:#fff;padding:0 6px}
+.pagination .pg:hover{border-color:var(--primary);color:var(--primary)}
+.pagination .pg.cur{background:var(--primary);border-color:var(--primary);color:#fff;pointer-events:none}
+.pagination .pg.dis{opacity:.4;pointer-events:none}
+.pagination .info{color:var(--muted);margin-left:8px}
+
+/* ---------- 空状态 ---------- */
+.empty{color:var(--muted);text-align:center;padding:30px 0;font-size:12px}
+
+/* ---------- 弹窗 ---------- */
+.modal-mask{position:fixed;inset:0;background:rgba(20,26,36,.45);display:flex;
+  align-items:center;justify-content:center;z-index:50}
+.modal{background:#fff;border-radius:10px;width:520px;max-width:92vw;max-height:86vh;
+  overflow:auto;box-shadow:0 8px 30px rgba(20,26,36,.18);animation:mpop .18s ease}
+@keyframes mpop{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.modal .m-head{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:600;
+  display:flex;justify-content:space-between;align-items:center}
+.modal .m-body{padding:18px}
+.modal .m-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.m-close{cursor:pointer;color:var(--muted);font-size:14px;padding:0 2px}
+.m-close:hover{color:var(--txt)}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:#1e2733;color:#fff;
+  padding:9px 20px;border-radius:8px;font-size:13px;display:none;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#toast.err{background:var(--high)}
+#toast.ok{background:#2b8a63}
