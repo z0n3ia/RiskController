@@ -13,6 +13,21 @@
 - **仿真测试**：构造事件实时命中验证，附未命中规则对照
 - **角色权限**：风控审核员 / 风控策略师 / 系统管理员，按权限矩阵控制导航与操作
 
+## 系统截图
+
+| | |
+|---|---|
+| ![登录页](./docs/screenshots/01-login.png) | ![态势大盘](./docs/screenshots/02-dashboard.png) |
+| 登录页（三角色入口） | 风控态势大盘 |
+| ![工作台列表](./docs/screenshots/03-workbench-list.png) | ![案件概览](./docs/screenshots/04-case-detail.png) |
+| 审核工作台·案件列表 | 案件概览（系统判定摘要 + 证据提示） |
+| ![特征快照](./docs/screenshots/05-case-snapshot.png) | ![策略配置](./docs/screenshots/06-policy.png) |
+| 特征快照对比 | 策略与规则配置 |
+| ![仿真测试](./docs/screenshots/07-simulate.png) | ![审计流水](./docs/screenshots/08-audit.png) |
+| 事件仿真测试 | 操作审计流水 |
+| ![系统监控](./docs/screenshots/09-system.png) | |
+| 系统运行监控 | |
+
 ## 目录结构
 
 ```
