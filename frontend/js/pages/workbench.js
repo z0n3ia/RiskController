@@ -77,123 +77,162 @@ RG.pages.workbench = (function () {
 
   function canDispose() { return RG.app.state.role === 'auditor'; }
 
+  /* ---------- 详情视图构建（纯字符串函数，Node 可单测；renderDetail 仅编排） ---------- */
+
+  function tabsHtml() {
+    return '<div class="tabs">' +
+      ['案件概览', '用户画像', '特征快照对比', '关联实体图谱', '研判与处置'].map((t, i) =>
+        '<div class="tab ' + (i === 0 ? 'active' : '') + '" data-tab="w' + (i + 1) + '">' + t + '</div>').join('') +
+      '</div>';
+  }
+
+  function featRowHtml(f) {
+    const valTxt = typeof f.value === 'boolean' ? String(f.value) : (f.value === undefined ? '—（缺失）' : f.value);
+    const hisTxt = typeof f.history === 'boolean' ? String(f.history) : f.history;
+    const st = f.status === 'high' ? '<span class="tag high">异常</span>'
+      : f.status === 'mid' ? '<span class="tag mid">关注</span>' : '<span class="tag gray">正常</span>';
+    return '<tr><td>' + f.key + ' ' + f.label + '</td><td class="' + (f.status === 'high' ? 'diff-up' : '') + '">' + valTxt + '</td>' +
+      '<td>' + hisTxt + '</td><td class="muted">' + (f.thresholds.length ? esc(f.thresholds.join('；')) : '—') + '</td><td>' + st + '</td></tr>';
+  }
+
+  function orderTagCls(status) {
+    if (status.includes('取消') || status.includes('拦截') ||
+        status.includes('作废') || status.includes('拒绝')) return 'high';
+    return status.includes('恢复') ? 'low' : 'gray';
+  }
+
+  function eventInfoCardHtml(c, p, d, mockUser, lvlTxt, lvlCls) {
+    return '<div class="card" style="background:#fafbfd"><h3>事件基本信息 <span class="tag ' + lvlCls + '">' + lvlTxt + ' ' + (c.status === '已处置' ? '· ' + c.status : '') + ' · 得分 ' + c.score + '</span></h3><table>' +
+      '<tr><td class="muted" width="30%">案件编号</td><td class="mono">' + c.id + '</td></tr>' +
+      '<tr><td class="muted">事件类型</td><td><span class="tag blue">' + d.sceneLabel + '</span></td></tr>' +
+      '<tr><td class="muted">涉事用户</td><td><a>' + c.userId + '（' + esc(p.name) + '）</a></td></tr>' +
+      '<tr><td class="muted">业务单据</td><td class="mono">' + c.bizOrderId + '</td></tr>' +
+      '<tr><td class="muted">设备指纹</td><td class="mono">' + p.device + ' <span class="tag ' + (p.devicePeers.length ? 'high' : 'gray') + '">关联 ' + (p.devicePeers.length + 1) + ' 账号</span></td></tr>' +
+      '<tr><td class="muted">请求 IP</td><td class="mono">' + p.ip + (mockUser.ipIdc ? ' <span class="tag mid">机房代理</span>' : '') + '</td></tr>' +
+      '<tr><td class="muted">触发时间</td><td>' + c.time + '</td></tr>' +
+      '<tr><td class="muted">审核状态</td><td><span class="tag ' + ST[c.status] + '">' + c.status + '</span>　处理人：' + c.assignee + '</td></tr>' +
+      '</table></div>';
+  }
+
+  function judgementCardHtml(c) {
+    return '<div class="card" style="background:#fafbfd"><h3>系统判定摘要</h3><table>' +
+      '<tr><th>命中规则</th><th>分值</th><th>触发原因</th></tr>' +
+      c.hits.map(h => '<tr><td>' + h.code + ' ' + esc(ruleName(h.code)) + '</td><td class="diff-up">+' + h.score + '</td><td class="muted">' + esc(h.reason) + '</td></tr>').join('') +
+      '<tr><td colspan="3" class="muted">共命中 ' + c.hits.length + ' 条规则，累计 ' + c.score + ' 分 → ' +
+        (c.level === 'high' ? '高风险 Reject' : '中风险 Review') + '，自动创建案件</td></tr>' +
+      '</table>' +
+      '<div class="note" style="margin-top:10px"><b>证据提示：</b>' + esc(c.evidence) + '</div></div>';
+  }
+
+  function ordersTableHtml(c) {
+    return '<h3 style="margin:12px 0 8px">关联订单 / 券信息</h3><table>' +
+      '<tr><th>单据</th><th>类型</th><th>金额/面额</th><th>状态</th></tr>' +
+      c.bizOrders.map(o => '<tr><td class="mono">' + o.id + '</td><td>' + o.type + '</td><td>' + o.amount + '</td><td><span class="tag ' + orderTagCls(o.status) + '">' + o.status + '</span></td></tr>').join('') +
+      '</table>';
+  }
+
+  function profileCardHtml(p) {
+    return '<div class="card"><h3>账号画像</h3><table>' +
+      '<tr><td class="muted" width="32%">用户编号</td><td class="mono">' + p.userId + '（' + esc(p.name) + '）</td></tr>' +
+      '<tr><td class="muted">注册天数</td><td>' + p.regDays + ' 天' + (p.regDays <= 3 ? ' <span class="tag high">新账号</span>' : '') + '</td></tr>' +
+      '<tr><td class="muted">历史订单</td><td>' + p.historyOrders + ' 单</td></tr>' +
+      '<tr><td class="muted">历史退款</td><td>' + p.refunds + ' 次</td></tr>' +
+      '<tr><td class="muted">手机号</td><td class="mono">' + p.phone + '</td></tr>' +
+      '<tr><td class="muted">风险标签</td><td>' + (p.tags.length ? p.tags.map(t => '<span class="tag ' + (t.length <= 2 ? 'mid' : 'high') + '">' + esc(t) + '</span>').join(' ') : '<span class="muted">无</span>') + '</td></tr>' +
+      '</table></div>';
+  }
+
+  function relationCardHtml(mockUser, p) {
+    const heat = (n, hi) => '<td class="' + (n >= hi ? 'diff-up' : 'muted') + '">' + (n >= hi ? '高' : n ? '中' : '—') + '</td>';
+    const addr = mockUser.addrOrders || 0;
+    return '<div class="card"><h3>关联维度汇总</h3><table>' +
+      '<tr><th>维度</th><th>关联实体数</th><th>异常度</th></tr>' +
+      '<tr><td>同设备账号</td><td>' + (p.devicePeers.length + 1) + '</td>' + heat(p.devicePeers.length, 2) + '</tr>' +
+      '<tr><td>同IP账号</td><td>' + (p.ipPeers.length + 1) + '</td>' + heat(p.ipPeers.length, 3) + '</tr>' +
+      '<tr><td>同收货手机号</td><td>0</td><td class="muted">—</td></tr>' +
+      '<tr><td>同收货地址</td><td>' + addr + '</td>' + heat(addr, 5) + '</tr>' +
+      '</table></div>';
+  }
+
+  function disposeNoteHtml(c) {
+    if (!canDispose())
+      return '<div class="note"><b>权限提示：</b>当前角色「' + RG.app.ROLE_INFO[RG.app.state.role] + '」仅可查看案件，处置操作需风控审核员执行。</div>';
+    return (c.status === '已处置' || c.status === '已归档')
+      ? '<div class="note"><b>说明：</b>该案件已终态，不可重复处置。</div>' : '';
+  }
+
+  function snapshotPaneHtml(snapshot) {
+    return '<div class="tabpane" id="w3">' +
+      '<div class="note"><b>展示逻辑：</b>当前值 vs 用户历史均值 / 规则阈值，异常项红色高亮；特征缺失时显示降级标记。</div>' +
+      '<table class="feat-table"><tr><th>特征项</th><th>当前值</th><th>历史均值</th><th>规则阈值</th><th>状态</th></tr>' +
+      snapshot.map(featRowHtml).join('') + '</table></div>';
+  }
+
+  function graphPaneHtml(graphSvg) {
+    return '<div class="tabpane" id="w4">' +
+      '<div class="note"><b>交互说明：</b>节点可点击下钻查看实体详情；连线粗细表示关联强度；同设备/同IP 聚集账号一目了然。</div>' +
+      '<div class="graph-box">' + graphSvg + '</div>' +
+      '<div class="legend"><span><i style="background:#fdecec;border:1px solid #e5484d"></i>设备节点</span>' +
+        '<span><i style="background:#e8effc;border:1px solid #3b6fe0"></i>用户节点</span>' +
+        '<span><i style="background:#fdf3e2;border:1px solid #c07d10"></i>IP节点</span><span>★ 案件主体</span></div>' +
+      '</div>';
+  }
+
+  function disposePaneHtml(c, p, note, disabled) {
+    return '<div class="tabpane" id="w5">' +
+      '<div class="note"><b>处置规则：</b>提交前需填写处置原因备注与核查依据；点击"确认执行"触发二次确认弹窗；处置后联动业务单据状态并写入不可篡改审计日志。</div>' +
+      note +
+      '<div class="row">' +
+      '<div class="card"><h3>处理结论</h3>' +
+        '<div class="dispose-opts">' +
+          '<div class="opt" data-c="pass">✅ 放行<br><small class="muted">恢复关联单据</small></div>' +
+          '<div class="opt danger" data-c="reject">⛔ 拦截<br><small class="muted">取消订单/拒绝退款</small></div>' +
+          '<div class="opt danger" data-c="black">🚫 拉黑用户<br><small class="muted">拦截+主体入黑名单</small></div>' +
+        '</div>' +
+        '<div id="blackDims" style="display:none;margin-bottom:10px">' +
+          '<label class="muted" style="font-size:12px">选择加入黑名单的维度（可多选）：</label>' +
+          '<div class="dims">' +
+            '<span class="tag blue click dim-tag" data-dim="user">用户账号 ' + p.userId + '</span>' +
+            '<span class="tag blue click dim-tag" data-dim="phone">手机号 ' + p.phone + '</span>' +
+            '<span class="tag blue click dim-tag" data-dim="ip">IP ' + p.ip + '</span>' +
+            '<span class="tag blue click dim-tag" data-dim="device">设备 ' + p.device + '</span>' +
+          '</div></div>' +
+        '<div class="field"><label class="req">处置原因备注</label><textarea id="dReason" rows="2" ' + (disabled ? 'disabled' : '') + ' placeholder="例如：确认为羊毛党团伙领券行为，证据充分"></textarea></div>' +
+        '<div class="field"><label class="req">核查依据</label><textarea id="dEvidence" rows="3" ' + (disabled ? 'disabled' : '') + ' placeholder="例如：同设备6账号1h内领券4张大额券，命中R003(+45)/R007(+40)，综合85分"></textarea></div>' +
+        '<button class="btn primary block" id="btnDispose" style="padding:9px" ' + (disabled ? 'disabled' : '') + '>确认执行处置</button>' +
+      '</div>' +
+      '<div class="card"><h3>处置动作预览</h3><table>' +
+        '<tr><th>系统联动动作</th><th>对象</th><th>结果</th></tr>' +
+        '<tr><td>拦截/恢复关联订单</td><td class="mono">' + esc(c.bizOrders.map(o => o.id).join('、')) + '</td><td>提交后执行</td></tr>' +
+        '<tr><td>主体写入黑名单库</td><td>按所选维度</td><td>拉黑时执行</td></tr>' +
+        '<tr><td>写入审计日志（append-only）</td><td>AUD-自动生成</td><td>提交后执行</td></tr>' +
+        '<tr><td>案件状态流转</td><td>' + c.status + ' → 已处置</td><td>提交后执行</td></tr>' +
+      '</table></div>' +
+      '</div></div>';
+  }
+
   function renderDetail(d) {
     const c = d.caseInfo, p = d.profile;
+    const mockUser = RG.mock.getUser(c.userId);
     const [lvlTxt, lvlCls] = LVL[c.level];
-    const featRows = d.snapshot.map(f => {
-      const valTxt = typeof f.value === 'boolean' ? String(f.value) : (f.value === undefined ? '—（缺失）' : f.value);
-      const hisTxt = typeof f.history === 'boolean' ? String(f.history) : f.history;
-      const st = f.status === 'high' ? '<span class="tag high">异常</span>'
-        : f.status === 'mid' ? '<span class="tag mid">关注</span>' : '<span class="tag gray">正常</span>';
-      return '<tr><td>' + f.key + ' ' + f.label + '</td><td class="' + (f.status === 'high' ? 'diff-up' : '') + '">' + valTxt + '</td>' +
-        '<td>' + hisTxt + '</td><td class="muted">' + (f.thresholds.length ? esc(f.thresholds.join('；')) : '—') + '</td><td>' + st + '</td></tr>';
-    }).join('');
-
-    const graphSvg = buildGraph(p);
-
-    const disposeDisabled = !canDispose() || c.status === '已处置' || c.status === '已归档';
-    const disposeNote = canDispose()
-      ? (disposeDisabled ? '<div class="note"><b>说明：</b>该案件已终态，不可重复处置。</div>' : '')
-      : '<div class="note"><b>权限提示：</b>当前角色「' + RG.app.ROLE_INFO[RG.app.state.role] + '」仅可查看案件，处置操作需风控审核员执行。</div>';
-
-    $('#caseDetail').innerHTML = '' +
-      '<div class="tabs">' +
-        ['案件概览', '用户画像', '特征快照对比', '关联实体图谱', '研判与处置'].map((t, i) =>
-          '<div class="tab ' + (i === 0 ? 'active' : '') + '" data-tab="w' + (i + 1) + '">' + t + '</div>').join('') +
-      '</div>' +
-
+    const disabled = !canDispose() || c.status === '已处置' || c.status === '已归档';
+    $('#caseDetail').innerHTML =
+      tabsHtml() +
       /* w1 案件概览 */
       '<div class="tabpane active" id="w1"><div class="row">' +
-        '<div class="card" style="background:#fafbfd"><h3>事件基本信息 <span class="tag ' + lvlCls + '">' + lvlTxt + ' ' + (c.status === '已处置' ? '· ' + c.status : '') + ' · 得分 ' + c.score + '</span></h3><table>' +
-          '<tr><td class="muted" width="30%">案件编号</td><td class="mono">' + c.id + '</td></tr>' +
-          '<tr><td class="muted">事件类型</td><td><span class="tag blue">' + d.sceneLabel + '</span></td></tr>' +
-          '<tr><td class="muted">涉事用户</td><td><a>' + c.userId + '（' + esc(p.name) + '）</a></td></tr>' +
-          '<tr><td class="muted">业务单据</td><td class="mono">' + c.bizOrderId + '</td></tr>' +
-          '<tr><td class="muted">设备指纹</td><td class="mono">' + p.device + ' <span class="tag ' + (p.devicePeers.length ? 'high' : 'gray') + '">关联 ' + (p.devicePeers.length + 1) + ' 账号</span></td></tr>' +
-          '<tr><td class="muted">请求 IP</td><td class="mono">' + p.ip + (RG.mock.getUser(c.userId).ipIdc ? ' <span class="tag mid">机房代理</span>' : '') + '</td></tr>' +
-          '<tr><td class="muted">触发时间</td><td>' + c.time + '</td></tr>' +
-          '<tr><td class="muted">审核状态</td><td><span class="tag ' + ST[c.status] + '">' + c.status + '</span>　处理人：' + c.assignee + '</td></tr>' +
-        '</table></div>' +
-        '<div class="card" style="background:#fafbfd"><h3>系统判定摘要</h3><table>' +
-          '<tr><th>命中规则</th><th>分值</th><th>触发原因</th></tr>' +
-          c.hits.map(h => '<tr><td>' + h.code + ' ' + esc(ruleName(h.code)) + '</td><td class="diff-up">+' + h.score + '</td><td class="muted">' + esc(h.reason) + '</td></tr>').join('') +
-          '<tr><td colspan="3" class="muted">共命中 ' + c.hits.length + ' 条规则，累计 ' + c.score + ' 分 → ' +
-            (c.level === 'high' ? '高风险 Reject' : '中风险 Review') + '，自动创建案件</td></tr>' +
-        '</table>' +
-        '<div class="note" style="margin-top:10px"><b>证据提示：</b>' + esc(c.evidence) + '</div></div>' +
+        eventInfoCardHtml(c, p, d, mockUser, lvlTxt, lvlCls) + judgementCardHtml(c) +
       '</div>' +
-      '<h3 style="margin:12px 0 8px">关联订单 / 券信息</h3><table>' +
-        '<tr><th>单据</th><th>类型</th><th>金额/面额</th><th>状态</th></tr>' +
-        c.bizOrders.map(o => '<tr><td class="mono">' + o.id + '</td><td>' + o.type + '</td><td>' + o.amount + '</td><td><span class="tag ' + (o.status.includes('取消') || o.status.includes('拦截') || o.status.includes('作废') || o.status.includes('拒绝') ? 'high' : o.status.includes('恢复') ? 'low' : 'gray') + '">' + o.status + '</span></td></tr>').join('') +
-      '</table></div>' +
-
+      ordersTableHtml(c) + '</div>' +
       /* w2 用户画像 */
       '<div class="tabpane" id="w2"><div class="row">' +
-        '<div class="card"><h3>账号画像</h3><table>' +
-          '<tr><td class="muted" width="32%">用户编号</td><td class="mono">' + p.userId + '（' + esc(p.name) + '）</td></tr>' +
-          '<tr><td class="muted">注册天数</td><td>' + p.regDays + ' 天' + (p.regDays <= 3 ? ' <span class="tag high">新账号</span>' : '') + '</td></tr>' +
-          '<tr><td class="muted">历史订单</td><td>' + p.historyOrders + ' 单</td></tr>' +
-          '<tr><td class="muted">历史退款</td><td>' + p.refunds + ' 次</td></tr>' +
-          '<tr><td class="muted">手机号</td><td class="mono">' + p.phone + '</td></tr>' +
-          '<tr><td class="muted">风险标签</td><td>' + (p.tags.length ? p.tags.map(t => '<span class="tag ' + (t.length <= 2 ? 'mid' : 'high') + '">' + esc(t) + '</span>').join(' ') : '<span class="muted">无</span>') + '</td></tr>' +
-        '</table></div>' +
-        '<div class="card"><h3>关联维度汇总</h3><table>' +
-          '<tr><th>维度</th><th>关联实体数</th><th>异常度</th></tr>' +
-          '<tr><td>同设备账号</td><td>' + (p.devicePeers.length + 1) + '</td><td class="' + (p.devicePeers.length >= 2 ? 'diff-up' : 'muted') + '">' + (p.devicePeers.length >= 2 ? '高' : p.devicePeers.length ? '中' : '—') + '</td></tr>' +
-          '<tr><td>同IP账号</td><td>' + (p.ipPeers.length + 1) + '</td><td class="' + (p.ipPeers.length >= 3 ? 'diff-up' : 'muted') + '">' + (p.ipPeers.length >= 3 ? '高' : p.ipPeers.length ? '中' : '—') + '</td></tr>' +
-          '<tr><td>同收货手机号</td><td>0</td><td class="muted">—</td></tr>' +
-          '<tr><td>同收货地址</td><td>' + RG.mock.getUser(c.userId).addrOrders + '</td><td class="' + (RG.mock.getUser(c.userId).addrOrders >= 5 ? 'diff-up' : 'muted') + '">' + (RG.mock.getUser(c.userId).addrOrders >= 5 ? '高' : RG.mock.getUser(c.userId).addrOrders ? '中' : '—') + '</td></tr>' +
-        '</table></div>' +
+        profileCardHtml(p) + relationCardHtml(mockUser, p) +
       '</div></div>' +
-
       /* w3 特征快照对比 */
-      '<div class="tabpane" id="w3">' +
-        '<div class="note"><b>展示逻辑：</b>当前值 vs 用户历史均值 / 规则阈值，异常项红色高亮；特征缺失时显示降级标记。</div>' +
-        '<table class="feat-table"><tr><th>特征项</th><th>当前值</th><th>历史均值</th><th>规则阈值</th><th>状态</th></tr>' + featRows + '</table>' +
-      '</div>' +
-
+      snapshotPaneHtml(d.snapshot) +
       /* w4 关联实体图谱 */
-      '<div class="tabpane" id="w4">' +
-        '<div class="note"><b>交互说明：</b>节点可点击下钻查看实体详情；连线粗细表示关联强度；同设备/同IP 聚集账号一目了然。</div>' +
-        '<div class="graph-box">' + graphSvg + '</div>' +
-        '<div class="legend"><span><i style="background:#fdecec;border:1px solid #e5484d"></i>设备节点</span>' +
-          '<span><i style="background:#e8effc;border:1px solid #3b6fe0"></i>用户节点</span>' +
-          '<span><i style="background:#fdf3e2;border:1px solid #c07d10"></i>IP节点</span><span>★ 案件主体</span></div>' +
-      '</div>' +
-
+      graphPaneHtml(buildGraph(p)) +
       /* w5 研判与处置 */
-      '<div class="tabpane" id="w5">' +
-        '<div class="note"><b>处置规则：</b>提交前需填写处置原因备注与核查依据；点击"确认执行"触发二次确认弹窗；处置后联动业务单据状态并写入不可篡改审计日志。</div>' +
-        disposeNote +
-        '<div class="row">' +
-        '<div class="card"><h3>处理结论</h3>' +
-          '<div class="dispose-opts">' +
-            '<div class="opt" data-c="pass">✅ 放行<br><small class="muted">恢复关联单据</small></div>' +
-            '<div class="opt danger" data-c="reject">⛔ 拦截<br><small class="muted">取消订单/拒绝退款</small></div>' +
-            '<div class="opt danger" data-c="black">🚫 拉黑用户<br><small class="muted">拦截+主体入黑名单</small></div>' +
-          '</div>' +
-          '<div id="blackDims" style="display:none;margin-bottom:10px">' +
-            '<label class="muted" style="font-size:12px">选择加入黑名单的维度（可多选）：</label>' +
-            '<div class="dims">' +
-              '<span class="tag blue click dim-tag" data-dim="user">用户账号 ' + p.userId + '</span>' +
-              '<span class="tag blue click dim-tag" data-dim="phone">手机号 ' + p.phone + '</span>' +
-              '<span class="tag blue click dim-tag" data-dim="ip">IP ' + p.ip + '</span>' +
-              '<span class="tag blue click dim-tag" data-dim="device">设备 ' + p.device + '</span>' +
-            '</div></div>' +
-          '<div class="field"><label class="req">处置原因备注</label><textarea id="dReason" rows="2" ' + (disposeDisabled ? 'disabled' : '') + ' placeholder="例如：确认为羊毛党团伙领券行为，证据充分"></textarea></div>' +
-          '<div class="field"><label class="req">核查依据</label><textarea id="dEvidence" rows="3" ' + (disposeDisabled ? 'disabled' : '') + ' placeholder="例如：同设备6账号1h内领券4张大额券，命中R003(+45)/R007(+40)，综合85分"></textarea></div>' +
-          '<button class="btn primary block" id="btnDispose" style="padding:9px" ' + (disposeDisabled ? 'disabled' : '') + '>确认执行处置</button>' +
-        '</div>' +
-        '<div class="card"><h3>处置动作预览</h3><table>' +
-          '<tr><th>系统联动动作</th><th>对象</th><th>结果</th></tr>' +
-          '<tr><td>拦截/恢复关联订单</td><td class="mono">' + esc(c.bizOrders.map(o => o.id).join('、')) + '</td><td>提交后执行</td></tr>' +
-          '<tr><td>主体写入黑名单库</td><td>按所选维度</td><td>拉黑时执行</td></tr>' +
-          '<tr><td>写入审计日志（append-only）</td><td>AUD-自动生成</td><td>提交后执行</td></tr>' +
-          '<tr><td>案件状态流转</td><td>' + c.status + ' → 已处置</td><td>提交后执行</td></tr>' +
-        '</table></div>' +
-        '</div>' +
-      '</div>';
-
+      disposePaneHtml(c, p, disposeNoteHtml(c), disabled);
     bindDetail(c, p);
   }
 
@@ -347,5 +386,11 @@ RG.pages.workbench = (function () {
     $('#pageContainer').removeEventListener('click', onListClick);
   }
 
-  return { render, mount, unmount };
+  return {
+    render, mount, unmount,
+    /* 纯视图构建函数，供 Node 单测（frontend/test）使用 */
+    _views: { tabsHtml, featRowHtml, orderTagCls, eventInfoCardHtml, judgementCardHtml,
+              ordersTableHtml, profileCardHtml, relationCardHtml, disposeNoteHtml,
+              snapshotPaneHtml, graphPaneHtml, disposePaneHtml }
+  };
 })();

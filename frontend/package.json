@@ -1,0 +1,9 @@
+{
+  "name": "riskcontroller-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "电商实时风险控制系统 · 前端（纯 HTML/CSS/JS，零依赖；测试用 Node 内置 node:test）",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  }
+}

@@ -116,42 +116,66 @@ RG.api = (function () {
     };
   }
 
-  async function getCase(id) {
-    const d = await req('GET', '/api/v1/cases/' + encodeURIComponent(id));
-    const c = d.case || {}, dec = d.decision || {}, ev = d.event || {}, p = d.profile || {};
-    const payload = ev.payload || {};
-    // 业务单据：从事件流水还原（券/订单/退款各取其单据号与金额）
-    const bizOrders = [];
+  /* 业务单据还原：券/订单/退款各取其单据号与金额 */
+  function buildBizOrders(ev) {
+    const orders = [], payload = ev.payload || {};
     if (ev.bizOrderId && ev.bizOrderId !== '—') {
       const amt = payload.amount != null ? payload.amount : payload.refundAmount;
-      bizOrders.push({
+      orders.push({
         id: payload.orderId || payload.couponId || ev.bizOrderId,
         type: (M.SCENES[ev.eventType] || ev.eventType),
         amount: amt != null ? '¥' + amt : '—',
         status: '—'
       });
     }
-    // 证据提示：后端无静态文案，按命中规则触发原因 + 图谱关联 + 处置建议动态拼装
-    const evParts = (dec.ruleHits || []).map(h => h.reason).filter(Boolean);
-    if (p.devicePeers && p.devicePeers.length) evParts.push('同设备关联 ' + (p.devicePeers.length + 1) + ' 个账号');
-    if (p.ipPeers && p.ipPeers.length) evParts.push('同 IP 关联 ' + (p.ipPeers.length + 1) + ' 个账号');
-    evParts.push(c.riskLevel === 'high' ? '建议直接拦截并拉黑设备/IP/账号' : '建议人工核对证据链与关联实体后处置');
+    return orders;
+  }
+
+  /* 证据提示拼装：命中规则触发原因 + 图谱关联 + 风险等级处置建议 */
+  function buildEvidence(dec, p, riskLevel) {
+    const parts = (dec.ruleHits || []).map(h => h.reason).filter(Boolean);
+    if (p.devicePeers && p.devicePeers.length)
+      parts.push('同设备关联 ' + (p.devicePeers.length + 1) + ' 个账号');
+    if (p.ipPeers && p.ipPeers.length)
+      parts.push('同 IP 关联 ' + (p.ipPeers.length + 1) + ' 个账号');
+    parts.push((RISK2FE[riskLevel] === 'high')
+      ? '建议直接拦截并拉黑设备/IP/账号'
+      : '建议人工核对证据链与关联实体后处置');
+    return parts.join('；');
+  }
+
+  /* 注册天数（非负整数；缺失/非法日期兜底 0） */
+  function regDaysOf(regTime) {
+    if (!regTime) return 0;
+    const ms = new Date(regTime).getTime();
+    return isNaN(ms) ? 0 : Math.max(0, Math.floor((Date.now() - ms) / 86400000));
+  }
+
+  /* 用户画像：后端字段 → 页面字段（逐项缺省兜底） */
+  function mapProfile(p) {
+    return {
+      userId: p.userId, name: p.name,
+      regDays: regDaysOf(p.regTime),
+      historyOrders: p.historyOrders || 0, refunds: p.refunds || 0,
+      tags: p.tags || [], device: p.device || '', ip: p.ip || '',
+      devicePeers: p.devicePeers || [], ipPeers: p.ipPeers || [],
+      phone: p.phone || ''
+    };
+  }
+
+  async function getCase(id) {
+    const d = await req('GET', '/api/v1/cases/' + encodeURIComponent(id));
+    const c = d.case || {}, dec = d.decision || {}, ev = d.event || {}, p = d.profile || {};
     return {
       caseInfo: Object.assign({}, c, {
         id: c.caseId, scene: c.eventType, level: RISK2FE[c.riskLevel] || 'low',
         time: c.createTime, bizOrderId: ev.bizOrderId || '—',
-        hits: dec.ruleHits || [], bizOrders,
-        evidence: evParts.join('；')
+        hits: dec.ruleHits || [],
+        bizOrders: buildBizOrders(ev),
+        evidence: buildEvidence(dec, p, c.riskLevel)
       }),
       sceneLabel: M.SCENES[c.eventType] || c.eventType,
-      profile: {
-        userId: p.userId, name: p.name,
-        regDays: p.regTime ? Math.max(0, Math.floor((Date.now() - new Date(p.regTime).getTime()) / 86400000)) : 0,
-        historyOrders: p.historyOrders || 0, refunds: p.refunds || 0,
-        tags: p.tags || [], device: p.device || '', ip: p.ip || '',
-        devicePeers: p.devicePeers || [], ipPeers: p.ipPeers || [],
-        phone: p.phone || ''
-      },
+      profile: mapProfile(p),
       snapshot: d.snapshotRows || []
     };
   }
